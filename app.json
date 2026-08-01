@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Muslim App",
+    "slug": "muslim-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/logo_muslim_app.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/logo2_muslim_app.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F5132"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.muslimapp.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo2_muslim_app.png",
+        "backgroundColor": "#0F5132"
+      },
+      "package": "com.muslimapp.mobile",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/logo2_muslim_app.png"
+    },
+    "plugins": [
+      "@react-native-google-signin/google-signin",
+      "@react-native-community/datetimepicker"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c7cd9c62-3999-4ff0-943f-80acd6e5578f"
+      }
+    }
+  }
+}
