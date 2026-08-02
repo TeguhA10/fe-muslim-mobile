@@ -693,53 +693,53 @@ export const HomeScreen: React.FC = () => {
               autoFocus
             />
 
-              {/* Image Uploader & Links */}
-              <View style={styles.mediaUploadContainer}>
-                <TouchableOpacity style={[styles.imageUploadBtn, { backgroundColor: colors.background, borderColor: colors.border }]} onPress={handlePickImages}>
-                  <ImageIcon color={colors.primary} size={20} />
-                  <Text style={[styles.imageUploadText, { color: colors.primary }]}>Tambah Gambar (Max 4)</Text>
+            {/* Image Uploader & Links */}
+            <View style={styles.mediaUploadContainer}>
+              <TouchableOpacity style={[styles.imageUploadBtn, { backgroundColor: colors.background, borderColor: colors.border }]} onPress={handlePickImages}>
+                <ImageIcon color={colors.primary} size={20} />
+                <Text style={[styles.imageUploadText, { color: colors.primary }]}>Tambah Gambar (Max 4)</Text>
+              </TouchableOpacity>
+
+              {selectedImages.length > 0 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagePreviewScroll}>
+                  {selectedImages.map((img, idx) => (
+                    <View key={idx} style={styles.imagePreviewWrapper}>
+                      <Image source={{ uri: img.uri }} style={styles.imagePreview} />
+                      <TouchableOpacity style={styles.imageRemoveBtn} onPress={() => setSelectedImages(selectedImages.filter((_, i) => i !== idx))}>
+                        <X color="white" size={14} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+
+              <View style={[styles.linkInputRow, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <TextInput
+                  style={[styles.linkInput, { color: colors.text }]}
+                  placeholder="Tambahkan URL Tautan..."
+                  placeholderTextColor={colors.textMuted}
+                  value={currentLinkInput}
+                  onChangeText={setCurrentLinkInput}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity style={[styles.linkAddBtn, { backgroundColor: colors.primary }]} onPress={handleAddLink}>
+                  <Text style={styles.linkAddText}>Tambah</Text>
                 </TouchableOpacity>
-
-                {selectedImages.length > 0 && (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagePreviewScroll}>
-                    {selectedImages.map((img, idx) => (
-                      <View key={idx} style={styles.imagePreviewWrapper}>
-                        <Image source={{ uri: img.uri }} style={styles.imagePreview} />
-                        <TouchableOpacity style={styles.imageRemoveBtn} onPress={() => setSelectedImages(selectedImages.filter((_, i) => i !== idx))}>
-                          <X color="white" size={14} />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </ScrollView>
-                )}
-
-                <View style={[styles.linkInputRow, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                  <TextInput
-                    style={[styles.linkInput, { color: colors.text }]}
-                    placeholder="Tambahkan URL Tautan..."
-                    placeholderTextColor={colors.textMuted}
-                    value={currentLinkInput}
-                    onChangeText={setCurrentLinkInput}
-                    autoCapitalize="none"
-                  />
-                  <TouchableOpacity style={[styles.linkAddBtn, { backgroundColor: colors.primary }]} onPress={handleAddLink}>
-                    <Text style={styles.linkAddText}>Tambah</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {postLinks.length > 0 && (
-                  <View style={styles.linkListContainer}>
-                    {postLinks.map((link, idx) => (
-                      <View key={idx} style={[styles.linkBadge, { backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9' }]}>
-                        <Text style={[styles.linkBadgeText, { color: colors.text }]} numberOfLines={1}>{link}</Text>
-                        <TouchableOpacity onPress={() => setPostLinks(postLinks.filter((_, i) => i !== idx))}>
-                          <X color={colors.error} size={14} />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                )}
               </View>
+
+              {postLinks.length > 0 && (
+                <View style={styles.linkListContainer}>
+                  {postLinks.map((link, idx) => (
+                    <View key={idx} style={[styles.linkBadge, { backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9' }]}>
+                      <Text style={[styles.linkBadgeText, { color: colors.text }]} numberOfLines={1}>{link}</Text>
+                      <TouchableOpacity onPress={() => setPostLinks(postLinks.filter((_, i) => i !== idx))}>
+                        <X color={colors.error} size={14} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
 
             <Text style={[styles.categorySelectLabel, { color: colors.text }]}>
               Pilih Kategori Postingan <Text style={{ color: colors.error }}>*</Text>

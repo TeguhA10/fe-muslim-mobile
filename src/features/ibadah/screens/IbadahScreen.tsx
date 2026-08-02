@@ -2,16 +2,20 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
 import { Card } from '../../../components/common/Card';
+import { LocationPickerModal } from '../../../components/common/LocationPickerModal';
 import { SPACING } from '../../../constants/theme';
 import { useThemeStore } from '../../../store/useThemeStore';
+import { useLocationStore } from '../../../store/useLocationStore';
 import { QiblaScreen } from './QiblaScreen';
 import { HijriCalendarYearScreen } from './HijriCalendarYearScreen';
-import { Compass, Calendar, Sparkles, ChevronRight } from 'lucide-react-native';
+import { Compass, Calendar, Sparkles, ChevronRight, MapPin } from 'lucide-react-native';
 
 export const IbadahScreen: React.FC = () => {
   const { colors, isDarkMode } = useThemeStore();
+  const { city } = useLocationStore();
   const [showQiblaCompass, setShowQiblaCompass] = useState<boolean>(false);
   const [showHijriYearCalendar, setShowHijriYearCalendar] = useState<boolean>(false);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState<boolean>(false);
 
   const islamicEvents = [
     { name: 'Maulid Nabi Muhammad SAW', date: '12 Rabiul Awal 1448 H', gregorian: '25 Agustus 2026', daysLeft: 24 },
@@ -51,20 +55,42 @@ export const IbadahScreen: React.FC = () => {
         </TouchableOpacity>
 
         {/* Interactive Qibla Compass Card */}
-        <TouchableOpacity activeOpacity={0.85} onPress={() => setShowQiblaCompass(true)}>
-          <Card style={[styles.qiblaCard, { backgroundColor: colors.primaryDark }]}>
-            <View style={styles.qiblaContent}>
+        <Card style={[styles.qiblaCard, { backgroundColor: colors.primaryDark }]}>
+          {/* Card Header Row */}
+          <View style={styles.qiblaHeaderRow}>
+            <View style={styles.qiblaHeaderLeft}>
               <View style={[styles.qiblaIconContainer, { backgroundColor: colors.accent }]}>
-                <Compass color="#FFFFFF" size={32} />
+                <Compass color="#FFFFFF" size={28} />
               </View>
               <View style={styles.qiblaTextContainer}>
-                <Text style={styles.qiblaTitle}>Kompas Arah Kiblat Interaktif</Text>
-                <Text style={styles.qiblaSubtitle}>Tekan untuk buka kompas animasi sensor real-time</Text>
+                <Text style={styles.qiblaTitle}>Kompas Arah Kiblat</Text>
+                <Text style={styles.qiblaSubtitle}>Sensor real-time • GPS Fusion</Text>
               </View>
-              <ChevronRight color="#FDE047" size={24} />
             </View>
-          </Card>
-        </TouchableOpacity>
+            {/* Location selector button — same pattern as MasjidMapScreen */}
+            <TouchableOpacity
+              style={styles.locationSelectorBtn}
+              onPress={() => setIsLocationModalOpen(true)}
+              activeOpacity={0.8}
+            >
+              <MapPin color="#FDE047" size={12} />
+              <Text style={styles.locationSelectorText} numberOfLines={1}>
+                {city.split(',')[0]}
+              </Text>
+              <ChevronRight color="rgba(255,255,255,0.5)" size={12} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Open Compass Button */}
+          <TouchableOpacity
+            style={[styles.openCompassBtn, { borderColor: 'rgba(255,255,255,0.2)' }]}
+            onPress={() => setShowQiblaCompass(true)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.openCompassBtnText}>Buka Kompas Kiblat</Text>
+            <ChevronRight color="#FDE047" size={16} />
+          </TouchableOpacity>
+        </Card>
 
         {/* Countdown Hari Besar Islam */}
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Countdown Hari Besar Islam</Text>
@@ -86,6 +112,12 @@ export const IbadahScreen: React.FC = () => {
           </Card>
         ))}
       </ScrollView>
+
+      {/* Location Picker Modal — shared with Kiblat card */}
+      <LocationPickerModal
+        visible={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+      />
     </ScreenWrapper>
   );
 };
@@ -147,30 +179,70 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.md,
     borderRadius: 20,
   },
-  qiblaContent: {
+  qiblaHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.md,
+  },
+  qiblaHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   qiblaIconContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: SPACING.md,
+    marginRight: SPACING.sm,
   },
   qiblaTextContainer: {
     flex: 1,
   },
   qiblaTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   qiblaSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#FDE047',
     marginTop: 2,
+  },
+  locationSelectorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    gap: 3,
+    maxWidth: 110,
+  },
+  locationSelectorText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FDE047',
+    flexShrink: 1,
+  },
+  openCompassBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  openCompassBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   sectionTitle: {
     fontSize: 18,

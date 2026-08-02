@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, Animated, Easing } from 'react-native';
+import { IslamicTexture } from '../components/layout/IslamicTexture';
 import { MainTabNavigator } from './MainTabNavigator';
 import { LoginScreen } from '../features/auth/screens/LoginScreen';
 import { RegisterScreen } from '../features/auth/screens/RegisterScreen';
@@ -121,12 +122,40 @@ export const RootNavigator: React.FC = () => {
     setAuthScreen('verify-otp');
   };
 
+  // Pulse animation for the splash ornament ring
+  const splashPulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!isBooting) return;
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(splashPulse, { toValue: 1.08, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(splashPulse, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    ).start();
+  }, [isBooting]);
+
   if (isBooting) {
     return (
       <View style={styles.splashContainer}>
-        <Text style={styles.splashTitle}>Muslim App</Text>
-        <Text style={styles.splashSubtitle}>Memuat sesi...</Text>
-        <ActivityIndicator size="large" color="#FDE047" style={styles.splashSpinner} />
+        {/* Islamic geometric texture */}
+        <IslamicTexture opacity={0.10} tint="gold" absolute />
+
+        {/* Decorative concentric rings */}
+        <Animated.View style={[styles.splashRingOuter, { transform: [{ scale: splashPulse }] }]} />
+        <View style={styles.splashRingInner} />
+
+        {/* App logo text */}
+        <View style={styles.splashLogoBox}>
+          <Text style={styles.splashEmoji}>🕌</Text>
+          <Text style={styles.splashTitle}>Muslim App</Text>
+          <Text style={styles.splashTagline}>Teman Ibadah Harian Anda</Text>
+        </View>
+
+        {/* Loading indicator */}
+        <View style={styles.splashBottom}>
+          <ActivityIndicator size="small" color="#D4AF37" />
+          <Text style={styles.splashSubtitle}>Memuat sesi...</Text>
+        </View>
       </View>
     );
   }
@@ -183,23 +212,65 @@ export const RootNavigator: React.FC = () => {
 const styles = StyleSheet.create({
   splashContainer: {
     flex: 1,
-    backgroundColor: '#0B3B24',
+    backgroundColor: '#071C10',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
+  },
+
+  // Decorative rings
+  splashRingOuter: {
+    position: 'absolute',
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.18)',
+  },
+  splashRingInner: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 1.5,
+    borderColor: 'rgba(212,175,55,0.30)',
+  },
+
+  // Logo box
+  splashLogoBox: {
+    alignItems: 'center',
+  },
+  splashEmoji: {
+    fontSize: 56,
+    marginBottom: 16,
   },
   splashTitle: {
-    fontSize: 28,
+    fontSize: 32,
     color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
-  splashSubtitle: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#E2E8F0',
+    fontWeight: '900',
+    letterSpacing: 1.5,
     textAlign: 'center',
   },
-  splashSpinner: {
-    marginTop: 18,
+  splashTagline: {
+    fontSize: 13,
+    color: '#D4AF37',
+    fontWeight: '500',
+    marginTop: 6,
+    letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+
+  // Bottom loading row
+  splashBottom: {
+    position: 'absolute',
+    bottom: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  splashSubtitle: {
+    fontSize: 13,
+    color: '#94A3B8',
+    fontWeight: '500',
   },
 });

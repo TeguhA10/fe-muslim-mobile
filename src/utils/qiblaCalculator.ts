@@ -20,3 +20,22 @@ export const calculateQiblaBearing = (userLat: number, userLng: number): number 
   let qibla = (Math.atan2(y, x) * 180) / Math.PI;
   return (qibla + 360) % 360;
 };
+
+/**
+ * Calculates distance from user location to Ka'bah in kilometers using Haversine formula
+ */
+export const calculateDistanceToKaaba = (userLat: number, userLng: number): number => {
+  const R = 6371; // Earth radius in km
+  const dLat = ((KAABA_LAT - userLat) * Math.PI) / 180;
+  const dLng = ((KAABA_LNG - userLng) * Math.PI) / 180;
+  
+  const lat1 = (userLat * Math.PI) / 180;
+  const lat2 = (KAABA_LAT * Math.PI) / 180;
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(lat1) * Math.cos(lat2);
+    
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
