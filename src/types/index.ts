@@ -17,6 +17,7 @@ export interface Post {
   user_id: string;
   content: string;
   image_url?: string;
+  media_urls?: { type: 'IMAGE' | 'LINK'; url: string }[];
   category?: string;
   created_at: string;
   author_name?: string;
@@ -46,7 +47,35 @@ export interface Masjid {
   address?: string;
   distance_km?: number;
   average_rating?: number;
+  total_reviews?: number;
   is_bookmarked_by_me?: boolean;
+}
+
+export interface MasjidReview {
+  id: string;
+  masjid_id: string;
+  user_id: string;
+  rating: number;
+  comment: string | null;
+  photos?: string[];
+  user_name: string;
+  user_avatar: string | null;
+  created_at: string;
+  updated_at?: string;
+  is_mine?: boolean;
+}
+
+export interface MasjidReviewSummary {
+  average_rating: number;
+  total_reviews: number;
+  star_distribution: {
+    5: number;
+    4: number;
+    3: number;
+    2: number;
+    1: number;
+  };
+  my_review?: MasjidReview | null;
 }
 
 export interface PrayerTimes {

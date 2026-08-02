@@ -24,10 +24,8 @@ import { useGuestGuard } from '../../../hooks/useGuestGuard';
 import {
   useSettingsStore,
   CALCULATION_METHODS,
-  LANGUAGES,
   REMINDER_OFFSETS,
   CalculationMethodId,
-  LanguageId,
 } from '../../../store/useSettingsStore';
 import { apiClient } from '../../../api/apiClient';
 import { ENDPOINTS } from '../../../api/endpoints';
@@ -40,7 +38,6 @@ import {
   Moon,
   Sun,
   Bell,
-  Globe,
   Settings,
   ChevronRight,
   LogOut,
@@ -53,6 +50,7 @@ import {
   X,
   UserPlus,
   Clock,
+  Globe,
 } from 'lucide-react-native';
 
 // Constants imported from useSettingsStore
@@ -84,11 +82,9 @@ export const ProfileScreen: React.FC = () => {
   const { requestRegister } = useGuestGuard();
   const {
     calculationMethod,
-    language,
     reminderOffsetMinutes,
     stickyNotifEnabled,
     setCalculationMethod,
-    setLanguage,
     setReminderOffsetMinutes,
     setStickyNotifEnabled,
   } = useSettingsStore();
@@ -101,11 +97,9 @@ export const ProfileScreen: React.FC = () => {
   const [notifAdzan, setNotifAdzan] = useState<boolean>(true);
   const [isOffsetModalOpen, setIsOffsetModalOpen] = useState<boolean>(false);
   const [selectedMethod, setSelectedMethod] = useState<string>('KEMENAG');
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('id');
 
   // Modals & Navigation
   const [isMethodModalOpen, setIsMethodModalOpen] = useState<boolean>(false);
-  const [isLangModalOpen, setIsLangModalOpen] = useState<boolean>(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState<boolean>(false);
   const [showChangePassword, setShowChangePassword] = useState<boolean>(false);
   const [showEditProfile, setShowEditProfile] = useState<boolean>(false);
@@ -137,7 +131,6 @@ export const ProfileScreen: React.FC = () => {
         if (data.settings) {
           setNotifAdzan(data.settings.notif_adzan_enabled);
           setSelectedMethod(data.settings.calculation_method || 'KEMENAG');
-          setSelectedLanguage(data.settings.language || 'id');
         }
       }
     } catch (error) {
@@ -163,7 +156,7 @@ export const ProfileScreen: React.FC = () => {
   const updateSettingsInDb = async (newSettings: any) => {
     try {
       await apiClient.post(ENDPOINTS.AUTH.SETTINGS, newSettings);
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const handleToggleNotif = (val: boolean) => {
@@ -174,11 +167,6 @@ export const ProfileScreen: React.FC = () => {
   const handleSelectMethod = (methodId: string) => {
     setCalculationMethod(methodId as CalculationMethodId);
     setIsMethodModalOpen(false);
-  };
-
-  const handleSelectLanguage = (langId: string) => {
-    setLanguage(langId as LanguageId);
-    setIsLangModalOpen(false);
   };
 
   const handleLogoutConfirm = () => {
@@ -240,12 +228,12 @@ export const ProfileScreen: React.FC = () => {
         setProfileData((prev) =>
           prev
             ? {
-                ...prev,
-                user: {
-                  ...prev.user,
-                  avatar_url: newAvatarUrl,
-                },
-              }
+              ...prev,
+              user: {
+                ...prev.user,
+                avatar_url: newAvatarUrl,
+              },
+            }
             : null
         );
         setAlertConfig({
@@ -271,7 +259,7 @@ export const ProfileScreen: React.FC = () => {
   const executeLogout = async () => {
     try {
       await apiClient.post(ENDPOINTS.AUTH.LOGOUT);
-    } catch (e) {}
+    } catch (e) { }
     logout();
   };
 
@@ -581,7 +569,6 @@ export const ProfileScreen: React.FC = () => {
             {/* Bahasa Aplikasi */}
             <TouchableOpacity
               style={styles.menuRow}
-              onPress={() => setIsLangModalOpen(true)}
               activeOpacity={0.7}
             >
               <View style={styles.menuLeft}>
@@ -591,7 +578,7 @@ export const ProfileScreen: React.FC = () => {
                 <View style={styles.menuTextGroup}>
                   <Text style={[styles.menuTitle, { color: colors.text }]}>Bahasa Aplikasi</Text>
                   <Text style={[styles.menuSub, { color: colors.textMuted }]}>
-                    {LANGUAGES.find((l) => l.id === language)?.native}
+                    Indonesia (id)
                   </Text>
                 </View>
               </View>
@@ -722,39 +709,6 @@ export const ProfileScreen: React.FC = () => {
                   <TouchableOpacity
                     style={[styles.selectOptionItem, isSelected && { backgroundColor: isDarkMode ? '#065F46' : '#F0FDF4' }]}
                     onPress={() => handleSelectMethod(item.id)}
-                  >
-                    <Text style={[styles.selectOptionText, { color: colors.text }, isSelected && { fontWeight: 'bold', color: colors.primary }]}>
-                      {item.name}
-                    </Text>
-                    {isSelected && <Check color={colors.primary} size={18} />}
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal Selection for Language */}
-      <Modal visible={isLangModalOpen} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Pilih Bahasa Aplikasi</Text>
-              <TouchableOpacity onPress={() => setIsLangModalOpen(false)}>
-                <X color={colors.text} size={24} />
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={LANGUAGES}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => {
-                const isSelected = item.id === selectedLanguage;
-                return (
-                  <TouchableOpacity
-                    style={[styles.selectOptionItem, isSelected && { backgroundColor: isDarkMode ? '#065F46' : '#F0FDF4' }]}
-                    onPress={() => handleSelectLanguage(item.id)}
                   >
                     <Text style={[styles.selectOptionText, { color: colors.text }, isSelected && { fontWeight: 'bold', color: colors.primary }]}>
                       {item.name}

@@ -22,6 +22,7 @@ export interface PostCardItem {
   user_id?: string;
   content: string;
   image_url?: string;
+  media_urls?: Array<{ id?: string; media_type?: 'IMAGE' | 'LINK'; type?: 'IMAGE' | 'LINK'; url: string }>;
   category?: string;
   created_at: string;
   author_name?: string;
@@ -38,6 +39,10 @@ export interface PostCardProps {
   item: PostCardItem;
   /** Dipanggil saat klik avatar/nama penulis — opsional */
   onPressAuthor?: (userId: string) => void;
+  /** Dipanggil saat klik seluruh area postingan — opsional */
+  onPressPost?: (item: PostCardItem) => void;
+  /** Dipanggil saat klik gambar postingan — opsional */
+  onPressImage?: (imageUrls: string[], initialIndex: number) => void;
   /** Dipanggil saat klik tombol Like */
   onLike: (postId: string) => void;
   /** Dipanggil saat klik tombol Komentar */
@@ -48,17 +53,7 @@ export interface PostCardProps {
   style?: object;
 }
 
-// ─────────────────────────────────────────────
-// Helper: format tanggal ke "2 Jan, 14:05"
-// ─────────────────────────────────────────────
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+import { formatRelativeTime } from '../../utils/dateFormatter';
 
 // ─────────────────────────────────────────────
 // Komponen PostCard
@@ -66,6 +61,8 @@ function formatDate(iso: string) {
 export const PostCard: React.FC<PostCardProps> = ({
   item,
   onPressAuthor,
+  onPressPost,
+  onPressImage,
   onLike,
   onComment,
   onBookmark,
@@ -123,7 +120,7 @@ export const PostCard: React.FC<PostCardProps> = ({
             </Text>
             <View style={styles.metaRow}>
               <Text style={[styles.postTime, { color: colors.textMuted }]}>
-                {formatDate(item.created_at)}
+                {formatRelativeTime(item.created_at)}
               </Text>
               {!!item.category && (
                 <View
@@ -157,16 +154,84 @@ export const PostCard: React.FC<PostCardProps> = ({
       </View>
 
       {/* ── Konten teks ── */}
-      <Text style={[styles.content, { color: colors.text }]}>{item.content}</Text>
+      <TouchableOpacity
+        activeOpacity={onPressPost ? 0.7 : 1}
+        onPress={() => onPressPost?.(item)}
+        disabled={!onPressPost}
+      >
+        <Text style={[styles.content, { color: colors.text }]}>{item.content}</Text>
+      </TouchableOpacity>
 
-      {/* ── Gambar lampiran ── */}
-      {!!item.image_url && (
-        <Image
-          source={{ uri: item.image_url }}
-          style={styles.image}
-          resizeMode="cover"
-        />
-      )}
+      {/* ── Media Lampiran (Image & Link) ── */}
+      {(() => {
+        const images = (item.media_urls || []).filter((m) => (m.media_type || m.type) === 'IMAGE');
+        const links = (item.media_urls || []).filter((m) => (m.media_type || m.type) === 'LINK');
+
+        // Fallback for old posts with single image_url
+        if (images.length === 0 && item.image_url) {
+          images.push({ type: 'IMAGE', url: item.image_url } as any);
+        }
+
+        const allImageUrls = images.map((img) => img.url);
+
+        const handleImagePress = (index: number) => {
+          if (onPressImage && allImageUrls.length > 0) {
+            onPressImage(allImageUrls, index);
+          } else if (onPressPost) {
+            onPressPost(item);
+          }
+        };
+
+        return (
+          <View style={styles.mediaContainer}>
+            {/* Render Links */}
+            {links.map((link, idx) => (
+              <View key={`link-${idx}`} style={[styles.linkContainer, { backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9' }]}>
+                <Text style={[styles.linkText, { color: colors.primary }]} numberOfLines={1}>{link.url}</Text>
+              </View>
+            ))}
+
+            {/* Render Images */}
+            {images.length === 1 && (
+              <TouchableOpacity activeOpacity={0.9} onPress={() => handleImagePress(0)}>
+                <Image source={{ uri: images[0].url }} style={styles.imageSingle} resizeMode="cover" />
+              </TouchableOpacity>
+            )}
+            
+            {images.length === 2 && (
+              <View style={styles.imageGrid2}>
+                <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.9} onPress={() => handleImagePress(0)}>
+                  <Image source={{ uri: images[0].url }} style={styles.imageHalf} resizeMode="cover" />
+                </TouchableOpacity>
+                <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.9} onPress={() => handleImagePress(1)}>
+                  <Image source={{ uri: images[1].url }} style={styles.imageHalf} resizeMode="cover" />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {images.length >= 3 && (
+              <View style={styles.imageGridMulti}>
+                <TouchableOpacity style={{ flex: 2 }} activeOpacity={0.9} onPress={() => handleImagePress(0)}>
+                  <Image source={{ uri: images[0].url }} style={styles.imageMain} resizeMode="cover" />
+                </TouchableOpacity>
+                <View style={styles.imageSide}>
+                  <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.9} onPress={() => handleImagePress(1)}>
+                    <Image source={{ uri: images[1].url }} style={styles.imageSideItem} resizeMode="cover" />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.imageSideItemWrapper} activeOpacity={0.9} onPress={() => handleImagePress(2)}>
+                    <Image source={{ uri: images[2].url }} style={styles.imageSideItem} resizeMode="cover" />
+                    {images.length > 3 && (
+                      <View style={styles.imageOverlay}>
+                        <Text style={styles.imageOverlayText}>+{images.length - 3}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+        );
+      })()}
 
       {/* ── Action bar: Like | Komentar | Share ── */}
       <View style={[styles.actionRow, { borderTopColor: colors.border }]}>
@@ -289,13 +354,76 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: SPACING.sm,
   },
-  // Image
-  image: {
+  // Media
+  mediaContainer: {
+    marginBottom: SPACING.md,
+  },
+  linkContainer: {
+    padding: SPACING.sm,
+    borderRadius: 8,
+    marginBottom: SPACING.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  linkText: {
+    fontSize: 14,
+    textDecorationLine: 'underline',
+  },
+  imageSingle: {
     width: '100%',
     height: 220,
     borderRadius: 14,
-    marginTop: SPACING.xs,
-    marginBottom: SPACING.md,
+  },
+  imageGrid2: {
+    flexDirection: 'row',
+    gap: 4,
+    height: 200,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  imageHalf: {
+    flex: 1,
+    height: '100%',
+  },
+  imageGridMulti: {
+    flexDirection: 'row',
+    gap: 4,
+    height: 240,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  imageMain: {
+    flex: 2,
+    height: '100%',
+  },
+  imageSide: {
+    flex: 1,
+    gap: 4,
+    height: '100%',
+  },
+  imageSideItem: {
+    flex: 1,
+    width: '100%',
+  },
+  imageSideItemWrapper: {
+    flex: 1,
+    width: '100%',
+    position: 'relative',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageOverlayText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   // Actions
   actionRow: {

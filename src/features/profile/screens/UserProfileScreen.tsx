@@ -14,6 +14,8 @@ import {
 import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
 import { Card } from '../../../components/common/Card';
 import { PostCard } from '../../../components/common/PostCard';
+import { ImageViewerModal } from '../../../components/common/ImageViewerModal';
+import { PostDetailScreen } from '../../home/screens/PostDetailScreen';
 import { SPACING } from '../../../constants/theme';
 import { useThemeStore } from '../../../store/useThemeStore';
 import { apiClient } from '../../../api/apiClient';
@@ -28,6 +30,7 @@ import {
   X,
   CornerDownRight,
 } from 'lucide-react-native';
+import { formatRelativeTime } from '../../../utils/dateFormatter';
 
 interface PublicUserProfile {
   id: string;
@@ -79,6 +82,16 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userId, on
 
   // Comments Modal state
   const [selectedPostForComment, setSelectedPostForComment] = useState<UserPost | null>(null);
+  const [selectedPostForDetail, setSelectedPostForDetail] = useState<any | null>(null);
+  const [imageViewerConfig, setImageViewerConfig] = useState<{
+    visible: boolean;
+    urls: string[];
+    index: number;
+  }>({
+    visible: false,
+    urls: [],
+    index: 0,
+  });
   const [commentsList, setCommentsList] = useState<CommentItem[]>([]);
   const [commentText, setCommentText] = useState<string>('');
   const [replyToComment, setReplyToComment] = useState<{ id: string; user_name?: string } | null>(null);
@@ -213,6 +226,30 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userId, on
     return d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
   };
 
+  if (selectedPostForDetail) {
+    return (
+      <>
+        <PostDetailScreen
+          post={{
+            ...selectedPostForDetail,
+            author_name: profile?.name,
+            author_avatar: profile?.avatar_url,
+          }}
+          onBack={() => setSelectedPostForDetail(null)}
+          onPressImage={(urls, index) =>
+            setImageViewerConfig({ visible: true, urls, index })
+          }
+        />
+        <ImageViewerModal
+          visible={imageViewerConfig.visible}
+          imageUrls={imageViewerConfig.urls}
+          initialIndex={imageViewerConfig.index}
+          onClose={() => setImageViewerConfig((prev) => ({ ...prev, visible: false }))}
+        />
+      </>
+    );
+  }
+
   return (
     <ScreenWrapper style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header Bar */}
@@ -298,14 +335,25 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userId, on
                   author_name: profile?.name,
                   author_avatar: profile?.avatar_url,
                 }}
+                onPressPost={(item) => setSelectedPostForDetail(item)}
+                onPressImage={(urls, index) =>
+                  setImageViewerConfig({ visible: true, urls, index })
+                }
                 onLike={() => handleToggleLike(post.id)}
-                onComment={() => handleOpenComments(post)}
+                onComment={() => setSelectedPostForDetail({ ...post, author_name: profile?.name, author_avatar: profile?.avatar_url })}
                 onBookmark={() => handleToggleBookmark(post.id)}
               />
             ))
           )}
         </ScrollView>
       )}
+
+      <ImageViewerModal
+        visible={imageViewerConfig.visible}
+        imageUrls={imageViewerConfig.urls}
+        initialIndex={imageViewerConfig.index}
+        onClose={() => setImageViewerConfig((prev) => ({ ...prev, visible: false }))}
+      />
 
       {/* Modal Komentar */}
       <Modal visible={!!selectedPostForComment} animationType="slide" transparent>
@@ -343,14 +391,21 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userId, on
                     </View>
                     <Text style={[styles.commentText, { color: colors.text }]}>{item.content}</Text>
 
-                    <TouchableOpacity
-                      style={styles.replyButton}
-                      onPress={() => setReplyToComment({ id: item.id, user_name: item.user_name })}
-                      activeOpacity={0.7}
-                    >
-                      <CornerDownRight color={colors.textMuted} size={12} />
-                      <Text style={[styles.replyButtonText, { color: colors.textMuted }]}>Balas</Text>
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+                      <TouchableOpacity
+                        style={styles.replyButton}
+                        onPress={() => setReplyToComment({ id: item.parent_id || item.id, user_name: item.user_name })}
+                        activeOpacity={0.7}
+                      >
+                        <CornerDownRight color={colors.textMuted} size={12} />
+                        <Text style={[styles.replyButtonText, { color: colors.textMuted }]}>Balas</Text>
+                      </TouchableOpacity>
+                      {item.created_at && (
+                        <Text style={{ fontSize: 11, color: colors.textMuted }}>
+                          {formatRelativeTime(item.created_at)}
+                        </Text>
+                      )}
+                    </View>
                   </View>
                 );
               }}

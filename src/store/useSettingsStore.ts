@@ -48,7 +48,7 @@ export const REMINDER_OFFSETS: ReminderOffsetOption[] = [
 ];
 
 // i18n Translations Dictionary
-const TRANSLATIONS: Record<LanguageId, Record<string, string>> = {
+const TRANSLATIONS: Partial<Record<LanguageId, Record<string, string>>> = {
   id: {
     home: 'Beranda',
     adzan: 'Jadwal Sholat',
@@ -68,46 +68,6 @@ const TRANSLATIONS: Record<LanguageId, Record<string, string>> = {
     light_mode: 'Tema Terang',
     logout: 'Keluar Akun',
     saved: 'Tersimpan',
-  },
-  en: {
-    home: 'Home',
-    adzan: 'Prayer Times',
-    ibadah: 'Worship Module',
-    maps: 'Mosque Finder',
-    profile: 'Profile & Settings',
-    subuh: 'Fajr',
-    dzuhur: 'Dhuhr',
-    ashar: 'Asr',
-    maghrib: 'Maghrib',
-    isya: 'Isha',
-    completed: 'Completed',
-    next_prayer: 'Next Prayer',
-    calculation_method: 'Calculation Method',
-    language: 'App Language',
-    dark_mode: 'Dark Mode',
-    light_mode: 'Light Mode',
-    logout: 'Logout',
-    saved: 'Saved',
-  },
-  ar: {
-    home: 'الرئيسية',
-    adzan: 'مواقيت الصلاة',
-    ibadah: 'العبادات',
-    maps: 'المساجد',
-    profile: 'الملف الشخصي',
-    subuh: 'الفجر',
-    dzuhur: 'الظهر',
-    ashar: 'العصر',
-    maghrib: 'المغرب',
-    isya: 'العشاء',
-    completed: 'تمت الصلاة',
-    next_prayer: 'الصلاة القادمة',
-    calculation_method: 'طريقة حساب المواقيت',
-    language: 'لغة التطبيق',
-    dark_mode: 'الوضع الداكن',
-    light_mode: 'الوضع الفاتح',
-    logout: 'تسجيل الخروج',
-    saved: 'المحفوظات',
   },
 };
 
@@ -138,10 +98,10 @@ export const useSettingsStore = create<SettingsStoreState>((set, get) => ({
       reminderOffsetMinutes: get().reminderOffsetMinutes,
       stickyNotifEnabled: get().stickyNotifEnabled,
     };
-    AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings)).catch(() => {});
+    AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings)).catch(() => { });
     try {
       await apiClient.post(ENDPOINTS.AUTH.SETTINGS, { calculation_method: method });
-    } catch (e) {}
+    } catch (e) { }
   },
 
   setLanguage: async (lang) => {
@@ -152,10 +112,10 @@ export const useSettingsStore = create<SettingsStoreState>((set, get) => ({
       reminderOffsetMinutes: get().reminderOffsetMinutes,
       stickyNotifEnabled: get().stickyNotifEnabled,
     };
-    AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings)).catch(() => {});
+    AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings)).catch(() => { });
     try {
       await apiClient.post(ENDPOINTS.AUTH.SETTINGS, { language: lang });
-    } catch (e) {}
+    } catch (e) { }
   },
 
   setReminderOffsetMinutes: async (minutes) => {
@@ -166,10 +126,10 @@ export const useSettingsStore = create<SettingsStoreState>((set, get) => ({
       reminderOffsetMinutes: minutes,
       stickyNotifEnabled: get().stickyNotifEnabled,
     };
-    AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings)).catch(() => {});
+    AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings)).catch(() => { });
     try {
       await apiClient.post(ENDPOINTS.AUTH.SETTINGS, { reminder_offset_minutes: minutes });
-    } catch (e) {}
+    } catch (e) { }
   },
 
   setStickyNotifEnabled: async (enabled) => {
@@ -180,10 +140,10 @@ export const useSettingsStore = create<SettingsStoreState>((set, get) => ({
       reminderOffsetMinutes: get().reminderOffsetMinutes,
       stickyNotifEnabled: enabled,
     };
-    AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings)).catch(() => {});
+    AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings)).catch(() => { });
     try {
       await apiClient.post(ENDPOINTS.AUTH.SETTINGS, { sticky_notif_enabled: enabled });
-    } catch (e) {}
+    } catch (e) { }
   },
 
   loadSettings: async () => {
@@ -196,12 +156,12 @@ export const useSettingsStore = create<SettingsStoreState>((set, get) => ({
         if (typeof parsed.reminderOffsetMinutes === 'number') set({ reminderOffsetMinutes: parsed.reminderOffsetMinutes });
         if (typeof parsed.stickyNotifEnabled === 'boolean') set({ stickyNotifEnabled: parsed.stickyNotifEnabled });
       }
-    } catch {}
+    } catch { }
   },
 
   t: (key: string) => {
     const lang = get().language || 'id';
-    return TRANSLATIONS[lang]?.[key] || TRANSLATIONS.id[key] || key;
+    return TRANSLATIONS[lang]?.[key] || TRANSLATIONS['id']?.[key] || key;
   },
 }));
 

@@ -16,6 +16,7 @@ import { Card } from '../../../components/common/Card';
 import { CustomAlert } from '../../../components/common/CustomAlert';
 import { LocationPickerModal } from '../../../components/common/LocationPickerModal';
 import { GuestGuardModal } from '../../../components/common/GuestGuardModal';
+import { MasjidDetailModal } from '../components/MasjidDetailModal';
 import { SPACING } from '../../../constants/theme';
 import { useLocationStore } from '../../../store/useLocationStore';
 import { useThemeStore } from '../../../store/useThemeStore';
@@ -38,13 +39,16 @@ import {
 export const MasjidMapScreen: React.FC = () => {
   const { city, latitude: userLat, longitude: userLng } = useLocationStore();
   const { colors, isDarkMode } = useThemeStore();
-  const { guardAction, requestRegister } = useGuestGuard();
+  const { guardAction, isGuest, isAuthenticated, requestRegister } = useGuestGuard();
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'nearby' | 'bookmarks'>('nearby');
   const [mosques, setMosques] = useState<Masjid[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Selected Mosque for Rating & Detail Modal
+  const [selectedDetailMasjid, setSelectedDetailMasjid] = useState<Masjid | null>(null);
 
   // Selected Mosque for Route Navigation Modal
   const [selectedRouteMosque, setSelectedRouteMosque] = useState<Masjid | null>(null);
@@ -70,6 +74,12 @@ export const MasjidMapScreen: React.FC = () => {
   const fetchMosques = async () => {
     try {
       setLoading(true);
+      if (activeTab === 'bookmarks' && (isGuest || !isAuthenticated)) {
+        setMosques([]);
+        setLoading(false);
+        return;
+      }
+
       const url = activeTab === 'bookmarks' ? ENDPOINTS.MASJID.BOOKMARKS : ENDPOINTS.MASJID.NEARBY;
       const params = activeTab === 'nearby' ? { lat: userLat, lng: userLng, radius: 10000 } : {};
 
@@ -105,11 +115,11 @@ export const MasjidMapScreen: React.FC = () => {
 
   // Handle Toggle Bookmark Masjid
   const handleToggleBookmark = async (mosque: Masjid) => {
+    const nextState = !mosque.is_bookmarked_by_me;
     setMosques((prev) =>
       prev.map((m) => {
-        if (m.id === mosque.id) {
-          const isBookmarked = m.is_bookmarked_by_me;
-          return { ...m, is_bookmarked_by_me: !isBookmarked };
+        if (m.id === mosque.id || (m.latitude === mosque.latitude && m.longitude === mosque.longitude)) {
+          return { ...m, is_bookmarked_by_me: nextState };
         }
         return m;
       })
@@ -124,6 +134,21 @@ export const MasjidMapScreen: React.FC = () => {
       });
 
       const bookmarked = res.data?.data?.bookmarked;
+      const realId = res.data?.data?.masjid_id;
+
+      setMosques((prev) =>
+        prev.map((m) => {
+          if (m.id === mosque.id || (m.latitude === mosque.latitude && m.longitude === mosque.longitude)) {
+            return {
+              ...m,
+              id: realId || m.id,
+              is_bookmarked_by_me: bookmarked !== undefined ? bookmarked : nextState,
+            };
+          }
+          return m;
+        })
+      );
+
       showAlert(
         'Masjid Tersimpan',
         bookmarked ? 'Masjid berhasil disimpan ke daftar tersimpan Anda!' : 'Masjid dihapus dari daftar tersimpan.',
@@ -191,12 +216,24 @@ export const MasjidMapScreen: React.FC = () => {
             ${
               hasRoute
                 ? `
-              const latlngs = [
-                [${userLat}, ${userLng}],
-                [${selectedLat}, ${selectedLng}]
-              ];
-              const polyline = L.polyline(latlngs, {color: '#0F5132', weight: 5, opacity: 0.85, dashArray: '8, 8'}).addTo(map);
-              map.fitBounds(polyline.getBounds(), {padding: [40, 40]});
+              fetch('https://router.project-osrm.org/route/v1/driving/${userLng},${userLat};${selectedLng},${selectedLat}?overview=full&geometries=geojson')
+                .then(response => response.json())
+                .then(data => {
+                  if (data.routes && data.routes.length > 0) {
+                    const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                    const polyline = L.polyline(coords, {color: '#0F5132', weight: 5, opacity: 0.85}).addTo(map);
+                    map.fitBounds(polyline.getBounds(), {padding: [40, 40]});
+                  } else {
+                    const latlngs = [[${userLat}, ${userLng}], [${selectedLat}, ${selectedLng}]];
+                    const polyline = L.polyline(latlngs, {color: '#0F5132', weight: 5, opacity: 0.85, dashArray: '8, 8'}).addTo(map);
+                    map.fitBounds(polyline.getBounds(), {padding: [40, 40]});
+                  }
+                })
+                .catch(err => {
+                  const latlngs = [[${userLat}, ${userLng}], [${selectedLat}, ${selectedLng}]];
+                  const polyline = L.polyline(latlngs, {color: '#0F5132', weight: 5, opacity: 0.85, dashArray: '8, 8'}).addTo(map);
+                  map.fitBounds(polyline.getBounds(), {padding: [40, 40]});
+                });
             `
                 : ''
             }
@@ -284,43 +321,54 @@ export const MasjidMapScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <Card style={styles.mosqueCard}>
-              <View style={styles.mosqueHeader}>
-                <View style={styles.mosqueInfo}>
-                  <View style={styles.nameRow}>
-                    <Text style={[styles.mosqueName, { color: colors.text }]}>{item.name}</Text>
-                    {item.distance_km !== undefined && (
-                      <View style={[styles.distanceBadge, { backgroundColor: isDarkMode ? '#065F46' : '#DCFCE7' }]}>
-                        <Text style={[styles.distanceText, { color: isDarkMode ? '#34D399' : '#15803D' }]}>{item.distance_km} km</Text>
-                      </View>
-                    )}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setSelectedDetailMasjid(item)}
+              >
+                <View style={styles.mosqueHeader}>
+                  <View style={styles.mosqueInfo}>
+                    <View style={styles.nameRow}>
+                      <Text style={[styles.mosqueName, { color: colors.text }]}>{item.name}</Text>
+                      {item.distance_km !== undefined && (
+                        <View style={[styles.distanceBadge, { backgroundColor: isDarkMode ? '#065F46' : '#DCFCE7' }]}>
+                          <Text style={[styles.distanceText, { color: isDarkMode ? '#34D399' : '#15803D' }]}>{item.distance_km} km</Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.addressRow}>
+                      <MapPin color={colors.textMuted} size={14} />
+                      <Text style={[styles.mosqueAddress, { color: colors.textMuted }]}>{item.address || 'Alamat dekat lokasi'}</Text>
+                    </View>
                   </View>
-                  <View style={styles.addressRow}>
-                    <MapPin color={colors.textMuted} size={14} />
-                    <Text style={[styles.mosqueAddress, { color: colors.textMuted }]}>{item.address || 'Alamat dekat lokasi'}</Text>
-                  </View>
-                </View>
 
-                {/* Bookmark Button */}
-                <TouchableOpacity
-                  onPress={guardAction(
-                    () => handleToggleBookmark(item),
-                    () => setIsGuestModalOpen(true)
-                  )}
-                  style={styles.bookmarkBtn}
-                >
-                  <Bookmark
-                    color={item.is_bookmarked_by_me ? colors.accent : colors.textMuted}
-                    fill={item.is_bookmarked_by_me ? colors.accent : 'transparent'}
-                    size={24}
-                  />
-                </TouchableOpacity>
-              </View>
+                  {/* Bookmark Button */}
+                  <TouchableOpacity
+                    onPress={guardAction(
+                      () => handleToggleBookmark(item),
+                      () => setIsGuestModalOpen(true)
+                    )}
+                    style={styles.bookmarkBtn}
+                  >
+                    <Bookmark
+                      color={item.is_bookmarked_by_me ? colors.accent : colors.textMuted}
+                      fill={item.is_bookmarked_by_me ? colors.accent : 'transparent'}
+                      size={24}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
 
               <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
-                <View style={[styles.ratingBadge, { backgroundColor: isDarkMode ? '#78350F' : '#FEF3C7' }]}>
+                <TouchableOpacity
+                  style={[styles.ratingBadge, { backgroundColor: isDarkMode ? '#78350F' : '#FEF3C7' }]}
+                  onPress={() => setSelectedDetailMasjid(item)}
+                  activeOpacity={0.8}
+                >
                   <Star color="#D97706" fill="#D97706" size={13} />
-                  <Text style={[styles.ratingText, { color: isDarkMode ? '#FDE047' : '#B45309' }]}>{item.average_rating || 4.8}</Text>
-                </View>
+                  <Text style={[styles.ratingText, { color: isDarkMode ? '#FDE047' : '#B45309' }]}>
+                    {Number(item.average_rating || 4.8).toFixed(1)} {item.total_reviews ? `(${item.total_reviews})` : ''}
+                  </Text>
+                </TouchableOpacity>
 
                 {/* Button Open Route Modal */}
                 <TouchableOpacity
@@ -366,20 +414,24 @@ export const MasjidMapScreen: React.FC = () => {
                     {selectedRouteMosque?.distance_km
                       ? Math.max(1, Math.round(selectedRouteMosque.distance_km * 12))
                       : 4}{' '}
-                    Menit Jalan Kaki
+                    mnt jalan kaki
                   </Text>
                 </View>
 
                 <View style={[styles.statBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                  <Car color={colors.accent} size={22} />
+                  <Car color={colors.primary} size={22} />
                   <Text style={[styles.statVal, { color: colors.text }]}>
+                    {selectedRouteMosque?.distance_km
+                      ? `${selectedRouteMosque.distance_km} km`
+                      : '0.35 km'}
+                  </Text>
+                  <Text style={[styles.statSub, { color: colors.textMuted }]}>
                     ~
                     {selectedRouteMosque?.distance_km
-                      ? Math.max(1, Math.round(selectedRouteMosque.distance_km * 3))
-                      : 2}{' '}
-                    Menit
+                      ? Math.max(1, Math.round(selectedRouteMosque.distance_km * 2.5))
+                      : 1}{' '}
+                    mnt berkendara
                   </Text>
-                  <Text style={[styles.statSub, { color: colors.textMuted }]}>Berkendara (Motor/Mobil)</Text>
                 </View>
               </View>
 
@@ -431,6 +483,33 @@ export const MasjidMapScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Modal Detail & Rating Masjid */}
+      <MasjidDetailModal
+        visible={!!selectedDetailMasjid}
+        masjid={selectedDetailMasjid}
+        userLat={userLat}
+        userLng={userLng}
+        onClose={() => setSelectedDetailMasjid(null)}
+        onBookmarkToggled={(masjidId, isBookmarked, realMasjidId, lat, lng) => {
+          setMosques((prev) =>
+            prev.map((m) =>
+              m.id === masjidId || (realMasjidId && m.id === realMasjidId) || (lat !== undefined && m.latitude === lat && m.longitude === lng)
+                ? { ...m, id: realMasjidId || m.id, is_bookmarked_by_me: isBookmarked }
+                : m
+            )
+          );
+        }}
+        onReviewUpdated={(masjidId, averageRating, totalReviews, lat, lng) => {
+          setMosques((prev) =>
+            prev.map((m) =>
+              m.id === masjidId || (lat !== undefined && m.latitude === lat && m.longitude === lng)
+                ? { ...m, average_rating: averageRating, total_reviews: totalReviews }
+                : m
+            )
+          );
+        }}
+      />
 
       {/* Location Picker Modal */}
       <LocationPickerModal

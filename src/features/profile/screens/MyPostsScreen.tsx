@@ -31,6 +31,7 @@ import {
   CornerDownRight,
   Share2,
 } from 'lucide-react-native';
+import { formatRelativeTime } from '../../../utils/dateFormatter';
 
 interface MyPostsScreenProps {
   userId: string;
@@ -409,14 +410,21 @@ export const MyPostsScreen: React.FC<MyPostsScreenProps> = ({
                     </View>
                     <Text style={[styles.commentText, { color: colors.text }]}>{item.content}</Text>
 
-                    <TouchableOpacity
-                      style={styles.replyButton}
-                      onPress={() => setReplyToComment({ id: item.id, user_name: item.user_name })}
-                      activeOpacity={0.7}
-                    >
-                      <CornerDownRight color={colors.textMuted} size={12} />
-                      <Text style={[styles.replyButtonText, { color: colors.textMuted }]}>Balas</Text>
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+                      <TouchableOpacity
+                        style={styles.replyButton}
+                        onPress={() => setReplyToComment({ id: item.parent_id || item.id, user_name: item.user_name })}
+                        activeOpacity={0.7}
+                      >
+                        <CornerDownRight color={colors.textMuted} size={12} />
+                        <Text style={[styles.replyButtonText, { color: colors.textMuted }]}>Balas</Text>
+                      </TouchableOpacity>
+                      {item.created_at && (
+                        <Text style={{ fontSize: 11, color: colors.textMuted }}>
+                          {formatRelativeTime(item.created_at)}
+                        </Text>
+                      )}
+                    </View>
                   </View>
                 );
               }}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import {
   View,
   Text,
@@ -18,6 +19,8 @@ import { Button } from '../../../components/common/Button';
 import { CustomAlert } from '../../../components/common/CustomAlert';
 import { GuestGuardModal } from '../../../components/common/GuestGuardModal';
 import { PostCard } from '../../../components/common/PostCard';
+import { ImageViewerModal } from '../../../components/common/ImageViewerModal';
+import { PostDetailScreen } from './PostDetailScreen';
 import { SPACING } from '../../../constants/theme';
 import { useThemeStore } from '../../../store/useThemeStore';
 import { useGuestGuard } from '../../../hooks/useGuestGuard';
@@ -28,12 +31,25 @@ import { Plus, X, Send, CornerDownRight, Search, Zap, Flame, Image as ImageIcon,
 import { UserProfileScreen } from '../../profile/screens/UserProfileScreen';
 import { useCategories } from '../../../hooks/useCategories';
 import { useAuthStore } from '../../../store/useAuthStore';
+import { formatRelativeTime } from '../../../utils/dateFormatter';
 
 export const HomeScreen: React.FC = () => {
   const { colors, isDarkMode } = useThemeStore();
   const { guardAction, requestRegister } = useGuestGuard();
   const [isGuestModalOpen, setIsGuestModalOpen] = useState<boolean>(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedPostForDetail, setSelectedPostForDetail] = useState<any | null>(null);
+
+  // Full-screen Image Viewer State
+  const [imageViewerConfig, setImageViewerConfig] = useState<{
+    visible: boolean;
+    urls: string[];
+    index: number;
+  }>({
+    visible: false,
+    urls: [],
+    index: 0,
+  });
 
   // Categories from DB (cached in AsyncStorage)
   const { categories, loading: categoriesLoading } = useCategories();
@@ -55,7 +71,9 @@ export const HomeScreen: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [newPostContent, setNewPostContent] = useState<string>('');
-  const [newPostImageUrl, setNewPostImageUrl] = useState<string>('');
+  const [selectedImages, setSelectedImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
+  const [postLinks, setPostLinks] = useState<string[]>([]);
+  const [currentLinkInput, setCurrentLinkInput] = useState<string>('');
   const [newPostCategory, setNewPostCategory] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
 
@@ -152,6 +170,32 @@ export const HomeScreen: React.FC = () => {
     fetchPostsData(0, true);
   };
 
+  const handleAddLink = () => {
+    if (currentLinkInput.trim()) {
+      setPostLinks([...postLinks, currentLinkInput.trim()]);
+      setCurrentLinkInput('');
+    }
+  };
+
+  const handlePickImages = async () => {
+    if (selectedImages.length >= 4) {
+      showAlert('Perhatian', 'Maksimal 4 gambar yang dapat dipilih.', 'warning');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      selectionLimit: 4 - selectedImages.length,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets) {
+      const newImages = [...selectedImages, ...result.assets].slice(0, 4);
+      setSelectedImages(newImages);
+    }
+  };
+
   // Handle Create Post
   const handleCreatePost = async () => {
     if (!newPostContent.trim()) {
@@ -166,10 +210,28 @@ export const HomeScreen: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const res = await apiClient.post(ENDPOINTS.POSTS.CREATE, {
-        content: newPostContent.trim(),
-        image_url: newPostImageUrl.trim() || undefined,
-        category: newPostCategory,
+      const formData = new FormData();
+      formData.append('content', newPostContent.trim());
+      formData.append('category', newPostCategory);
+
+      if (postLinks.length > 0) {
+        formData.append('links', JSON.stringify(postLinks));
+      }
+
+      selectedImages.forEach((img, index) => {
+        const fileExt = img.uri.split('.').pop() || 'jpg';
+        const fileName = `upload_${Date.now()}_${index}.${fileExt}`;
+        formData.append('images', {
+          uri: img.uri,
+          name: fileName,
+          type: `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`
+        } as any);
+      });
+
+      const res = await apiClient.post(ENDPOINTS.POSTS.CREATE, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       if (res.data?.data) {
@@ -180,7 +242,9 @@ export const HomeScreen: React.FC = () => {
 
       setIsModalOpen(false);
       setNewPostContent('');
-      setNewPostImageUrl('');
+      setSelectedImages([]);
+      setPostLinks([]);
+      setCurrentLinkInput('');
       setNewPostCategory(categories[0]?.name ?? '');
       showAlert('Berhasil', 'Postingan Anda berhasil dipublikasikan!', 'success');
     } catch (error: any) {
@@ -320,6 +384,30 @@ export const HomeScreen: React.FC = () => {
 
   if (selectedUserId) {
     return <UserProfileScreen userId={selectedUserId} onBack={() => setSelectedUserId(null)} />;
+  }
+
+  if (selectedPostForDetail) {
+    return (
+      <>
+        <PostDetailScreen
+          post={selectedPostForDetail}
+          onBack={() => setSelectedPostForDetail(null)}
+          onPressAuthor={(userId) => {
+            setSelectedPostForDetail(null);
+            setSelectedUserId(userId);
+          }}
+          onPressImage={(urls, index) =>
+            setImageViewerConfig({ visible: true, urls, index })
+          }
+        />
+        <ImageViewerModal
+          visible={imageViewerConfig.visible}
+          imageUrls={imageViewerConfig.urls}
+          initialIndex={imageViewerConfig.index}
+          onClose={() => setImageViewerConfig((prev) => ({ ...prev, visible: false }))}
+        />
+      </>
+    );
   }
 
   return (
@@ -563,6 +651,10 @@ export const HomeScreen: React.FC = () => {
             <PostCard
               item={item}
               onPressAuthor={(userId) => setSelectedUserId(userId)}
+              onPressPost={(postItem) => setSelectedPostForDetail(postItem)}
+              onPressImage={(urls, index) =>
+                setImageViewerConfig({ visible: true, urls, index })
+              }
               onLike={guardAction(
                 () => handleToggleLike(item.id),
                 () => setIsGuestModalOpen(true)
@@ -601,13 +693,53 @@ export const HomeScreen: React.FC = () => {
               autoFocus
             />
 
-            <TextInput
-              style={[styles.imageInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-              placeholder="URL Gambar Lampiran (Opsional)"
-              placeholderTextColor={colors.textMuted}
-              value={newPostImageUrl}
-              onChangeText={setNewPostImageUrl}
-            />
+              {/* Image Uploader & Links */}
+              <View style={styles.mediaUploadContainer}>
+                <TouchableOpacity style={[styles.imageUploadBtn, { backgroundColor: colors.background, borderColor: colors.border }]} onPress={handlePickImages}>
+                  <ImageIcon color={colors.primary} size={20} />
+                  <Text style={[styles.imageUploadText, { color: colors.primary }]}>Tambah Gambar (Max 4)</Text>
+                </TouchableOpacity>
+
+                {selectedImages.length > 0 && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagePreviewScroll}>
+                    {selectedImages.map((img, idx) => (
+                      <View key={idx} style={styles.imagePreviewWrapper}>
+                        <Image source={{ uri: img.uri }} style={styles.imagePreview} />
+                        <TouchableOpacity style={styles.imageRemoveBtn} onPress={() => setSelectedImages(selectedImages.filter((_, i) => i !== idx))}>
+                          <X color="white" size={14} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </ScrollView>
+                )}
+
+                <View style={[styles.linkInputRow, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                  <TextInput
+                    style={[styles.linkInput, { color: colors.text }]}
+                    placeholder="Tambahkan URL Tautan..."
+                    placeholderTextColor={colors.textMuted}
+                    value={currentLinkInput}
+                    onChangeText={setCurrentLinkInput}
+                    autoCapitalize="none"
+                  />
+                  <TouchableOpacity style={[styles.linkAddBtn, { backgroundColor: colors.primary }]} onPress={handleAddLink}>
+                    <Text style={styles.linkAddText}>Tambah</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {postLinks.length > 0 && (
+                  <View style={styles.linkListContainer}>
+                    {postLinks.map((link, idx) => (
+                      <View key={idx} style={[styles.linkBadge, { backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9' }]}>
+                        <Text style={[styles.linkBadgeText, { color: colors.text }]} numberOfLines={1}>{link}</Text>
+                        <TouchableOpacity onPress={() => setPostLinks(postLinks.filter((_, i) => i !== idx))}>
+                          <X color={colors.error} size={14} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
 
             <Text style={[styles.categorySelectLabel, { color: colors.text }]}>
               Pilih Kategori Postingan <Text style={{ color: colors.error }}>*</Text>
@@ -690,17 +822,29 @@ export const HomeScreen: React.FC = () => {
                     </View>
                     <Text style={[styles.commentText, { color: colors.text }]}>{item.content}</Text>
 
-                    <TouchableOpacity
-                      style={styles.replyButton}
-                      onPress={() => setReplyToComment({ id: item.id, user_name: item.user_name })}
-                      activeOpacity={0.7}
-                    >
-                      <CornerDownRight color={colors.textMuted} size={12} />
-                      <Text style={[styles.replyButtonText, { color: colors.textMuted }]}>Balas</Text>
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <TouchableOpacity
+                        style={styles.replyButton}
+                        onPress={() => setReplyToComment({ id: item.parent_id || item.id, user_name: item.user_name })}
+                        activeOpacity={0.7}
+                      >
+                        <CornerDownRight color={colors.textMuted} size={12} />
+                        <Text style={[styles.replyButtonText, { color: colors.textMuted }]}>Balas</Text>
+                      </TouchableOpacity>
+                      {item.created_at && (
+                        <Text style={{ fontSize: 11, color: colors.textMuted }}>
+                          {formatRelativeTime(item.created_at)}
+                        </Text>
+                      )}
+                    </View>
                   </View>
                 );
               }}
+              ListEmptyComponent={
+                <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 13, color: colors.textMuted }}>Belum ada komentar. Jadilah yang pertama!</Text>
+                </View>
+              }
             />
 
             {/* Reply Indicator Banner */}
@@ -730,6 +874,14 @@ export const HomeScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Full-screen Image Viewer Modal */}
+      <ImageViewerModal
+        visible={imageViewerConfig.visible}
+        imageUrls={imageViewerConfig.urls}
+        initialIndex={imageViewerConfig.index}
+        onClose={() => setImageViewerConfig((prev) => ({ ...prev, visible: false }))}
+      />
 
       {/* Custom Rich Alert Modal */}
       <CustomAlert
@@ -1076,4 +1228,89 @@ const styles = StyleSheet.create({
   modalCategoryText: {
     fontSize: 12,
   },
+  mediaUploadContainer: {
+    marginBottom: SPACING.md,
+  },
+  imageUploadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    gap: 8,
+    marginBottom: SPACING.xs,
+  },
+  imageUploadText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  imagePreviewScroll: {
+    marginVertical: SPACING.xs,
+  },
+  imagePreviewWrapper: {
+    position: 'relative',
+    marginRight: 8,
+  },
+  imagePreview: {
+    width: 70,
+    height: 70,
+    borderRadius: 10,
+  },
+  imageRemoveBtn: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  linkInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: SPACING.sm,
+    height: 42,
+    marginTop: 6,
+  },
+  linkInput: {
+    flex: 1,
+    fontSize: 13,
+  },
+  linkAddBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  linkAddText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  linkListContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  linkBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    maxWidth: '100%',
+    gap: 6,
+  },
+  linkBadgeText: {
+    fontSize: 12,
+    maxWidth: 200,
+  },
 });
+

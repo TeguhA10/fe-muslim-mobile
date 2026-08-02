@@ -39,6 +39,7 @@ export const ENDPOINTS = {
     BOOKMARKS: '/masjid/bookmarks/all',
     BOOKMARK: (id: string) => `/masjid/${id}/bookmark`,
     REVIEWS: (id: string) => `/masjid/${id}/reviews`,
-    ADD_REVIEW: '/masjid/reviews',
+    REVIEW_SUMMARY: (id: string) => `/masjid/${id}/reviews/summary`,
+    DELETE_REVIEW: (reviewId: string) => `/masjid/reviews/${reviewId}`,
   },
 };
