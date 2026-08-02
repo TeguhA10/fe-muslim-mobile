@@ -27,8 +27,10 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const {
     calculationMethod,
     reminderOffsetMinutes,
+    notifAdzanEnabled,
     stickyNotifEnabled,
     setReminderOffsetMinutes,
+    setNotifAdzanEnabled,
     setStickyNotifEnabled,
   } = useSettingsStore();
   const { guardAction, requestRegister } = useGuestGuard();
@@ -49,7 +51,12 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
     return unsubscribe;
   }, [navigation]);
 
-  const getTodayDateStr = () => new Date().toISOString().split('T')[0];
+  const getTodayDateStr = (d: Date = new Date()) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDateStr());
   const [historyDays, setHistoryDays] = useState<DayItem[]>([]);
   const [historyStats, setHistoryStats] = useState<{ [date: string]: number }>({});
@@ -62,18 +69,11 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
     { name: 'Isya', time: '19:12', active: false, completed: false },
   ]);
 
-  const [notifEnabled, setNotifEnabled] = useState(true);
-
-  // Dynamic Real-Time Countdown & Next Prayer State
   const [nextPrayerInfo, setNextPrayerInfo] = useState<{
     name: string;
     time: string;
     countdown: string;
-  }>({
-    name: 'Dzuhur',
-    time: '12:02 WIB',
-    countdown: '00:00:00',
-  });
+  } | null>(null);
 
   const prayerTimingsKey = prayerTimes.map((p) => `${p.name}:${p.time}`).join('|');
 
@@ -81,28 +81,18 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   useEffect(() => {
     const updateCountdown = () => {
       const now = new Date();
-
-      // Timezone suffix (e.g. WIB / WITA / WIT / GMT)
-      const tzOffsetHours = -now.getTimezoneOffset() / 60;
-      let tzSuffix = 'WIB';
-      if (tzOffsetHours === 8) tzSuffix = 'WITA';
-      else if (tzOffsetHours === 9) tzSuffix = 'WIT';
-      else if (tzOffsetHours !== 7) tzSuffix = `GMT${tzOffsetHours >= 0 ? '+' : ''}${tzOffsetHours}`;
+      const todayStr = getTodayDateStr(now);
 
       let upcomingPrayer: { name: string; time: string; targetDate: Date } | null = null;
-      let activeIndex = -1;
 
       for (let i = 0; i < prayerTimes.length; i++) {
         const p = prayerTimes[i];
-        const [h, m] = p.time.split(':').map((v) => parseInt(v, 10));
-        if (isNaN(h) || isNaN(m)) continue;
-
+        const [h, m] = p.time.split(':').map(Number);
         const target = new Date();
         target.setHours(h, m, 0, 0);
 
-        if (target > now) {
+        if (target.getTime() > now.getTime()) {
           upcomingPrayer = { name: p.name, time: p.time, targetDate: target };
-          activeIndex = i === 0 ? 4 : i - 1;
           break;
         }
       }
@@ -110,12 +100,11 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
       // If all prayers today passed, next prayer is tomorrow's Subuh
       if (!upcomingPrayer && prayerTimes.length > 0) {
         const subuh = prayerTimes[0];
-        const [h, m] = subuh.time.split(':').map((v) => parseInt(v, 10));
+        const [h, m] = subuh.time.split(':').map(Number);
         const tomorrowSubuh = new Date();
-        tomorrowSubuh.setDate(tomorrowSubuh.getDate() + 1);
-        tomorrowSubuh.setHours(isNaN(h) ? 4 : h, isNaN(m) ? 42 : m, 0, 0);
+        tomorrowSubuh.setDate(now.getDate() + 1);
+        tomorrowSubuh.setHours(h, m, 0, 0);
         upcomingPrayer = { name: subuh.name, time: subuh.time, targetDate: tomorrowSubuh };
-        activeIndex = 4;
       }
 
       if (upcomingPrayer) {
@@ -125,8 +114,11 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
         const mins = Math.floor((totalSec % 3600) / 60);
         const secs = totalSec % 60;
 
-        const pad = (n: number) => n.toString().padStart(2, '0');
+        const pad = (n: number) => String(n).padStart(2, '0');
         const countdownStr = `${pad(hours)}:${pad(mins)}:${pad(secs)}`;
+
+        const tzName = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const tzSuffix = tzName.includes('Makassar') || tzName.includes('Jayapura') ? 'WITA/WIT' : 'WIB';
 
         setNextPrayerInfo({
           name: upcomingPrayer.name,
@@ -134,7 +126,6 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
           countdown: countdownStr,
         });
 
-        // Present live countdown in status bar ongoing notification
         if (stickyNotifEnabled) {
           NotificationService.updateOngoingNotification(
             upcomingPrayer.name,
@@ -145,19 +136,25 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
         } else {
           NotificationService.dismissOngoingNotification();
         }
+      }
 
-        // Update active prayer status dynamically in prayerTimes list if selectedDate is today
-        if (selectedDate === getTodayDateStr() && activeIndex >= 0) {
-          setPrayerTimes((prev) => {
-            let hasChanged = false;
-            const updated = prev.map((item, idx) => {
-              const isActive = idx === activeIndex;
-              if (item.active !== isActive) hasChanged = true;
-              return { ...item, active: isActive };
-            });
-            return hasChanged ? updated : prev;
+      // Update active prayer status dynamically in prayerTimes list if selectedDate is today
+      if (selectedDate === todayStr) {
+        setPrayerTimes((prev) => {
+          let foundNext = false;
+          return prev.map((p) => {
+            const [h, m] = p.time.split(':').map(Number);
+            const target = new Date();
+            target.setHours(h, m, 0, 0);
+
+            let active = false;
+            if (!foundNext && target.getTime() > now.getTime()) {
+              active = true;
+              foundNext = true;
+            }
+            return { ...p, active };
           });
-        }
+        });
       }
     };
 
@@ -170,10 +167,12 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   useEffect(() => {
     const days: DayItem[] = [];
     const today = new Date();
+    const todayStr = getTodayDateStr(today);
+
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(today.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = getTodayDateStr(d);
 
       const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -182,7 +181,7 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
         dateStr,
         dayName: dayNames[d.getDay()],
         dayNum: `${d.getDate()} ${monthNames[d.getMonth()]}`,
-        isToday: i === 0,
+        isToday: dateStr === todayStr,
       });
     }
     setHistoryDays(days);
@@ -296,9 +295,9 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.nextPrayerLabel}>Menuju Sholat {nextPrayerInfo.name}</Text>
-          <Text style={styles.countdownText}>{nextPrayerInfo.countdown}</Text>
-          <Text style={styles.nextPrayerTime}>Waktu: {nextPrayerInfo.time}</Text>
+          <Text style={styles.nextPrayerLabel}>Menuju Sholat {nextPrayerInfo?.name || 'Dzuhur'}</Text>
+          <Text style={styles.countdownText}>{nextPrayerInfo?.countdown || '00:00:00'}</Text>
+          <Text style={styles.nextPrayerTime}>Waktu: {nextPrayerInfo?.time || '12:02 WIB'}</Text>
         </Card>
 
         {/* Riwayat Sholat 7 Hari Selector */}
@@ -411,8 +410,8 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
               <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>Pengingat waktu 5 sholat wajib</Text>
             </View>
             <Switch
-              value={notifEnabled}
-              onValueChange={setNotifEnabled}
+              value={notifAdzanEnabled}
+              onValueChange={setNotifAdzanEnabled}
               trackColor={{ false: '#CBD5E1', true: colors.primary }}
               thumbColor={colors.surface}
             />

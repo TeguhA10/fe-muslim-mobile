@@ -14,7 +14,7 @@ import * as Location from 'expo-location';
 import { COLORS, SPACING } from '../../constants/theme';
 import { useLocationStore, CityOption } from '../../store/useLocationStore';
 import { LocationApiService } from '../../services/locationApi.service';
-import { Navigation, MapPin, Search, X, Check, Globe } from 'lucide-react-native';
+import { Navigation, MapPin, Search, X, Check, Compass } from 'lucide-react-native';
 
 interface LocationPickerModalProps {
   visible: boolean;
@@ -186,7 +186,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({ visibl
                     onPress={() => handleSelectCity(item)}
                   >
                     <View style={styles.cityLeft}>
-                      <Globe color={isSelected ? COLORS.primary : COLORS.textMuted} size={18} />
+                      <Compass color={isSelected ? COLORS.primary : COLORS.textMuted} size={18} />
                       <View style={styles.cityTextContainer}>
                         <Text style={[styles.cityName, isSelected && styles.cityNameActive]}>
                           {item.name}

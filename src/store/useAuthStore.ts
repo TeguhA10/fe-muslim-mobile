@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { User } from '../types';
 import { apiClient, setAuthToken } from '../api/apiClient';
 import { ENDPOINTS } from '../api/endpoints';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureStorage } from '../utils/secureStorage';
 import { socketService } from '../services/socket.service';
 import { useNotificationStore } from './useNotificationStore';
 
@@ -40,28 +40,24 @@ export const useAuthStore = create<AuthState>((set) => ({
     setAuthToken(token);
     set({ user, token, refreshToken, isAuthenticated: true, isGuest: false, pendingRegisterRedirect: false });
     try {
-      await AsyncStorage.multiSet([
-        [AUTH_STORAGE_KEYS.accessToken, token],
-        [AUTH_STORAGE_KEYS.refreshToken, refreshToken || ''],
-        [AUTH_STORAGE_KEYS.user, JSON.stringify(user)],
-      ]);
+      await secureStorage.setItem(AUTH_STORAGE_KEYS.accessToken, token);
+      await secureStorage.setItem(AUTH_STORAGE_KEYS.refreshToken, refreshToken || '');
+      await secureStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(user));
     } catch {}
   },
   setTokens: async (token, refreshToken = null) => {
     setAuthToken(token);
     set({ token, refreshToken, isAuthenticated: true, isGuest: false });
     try {
-      await AsyncStorage.multiSet([
-        [AUTH_STORAGE_KEYS.accessToken, token],
-        [AUTH_STORAGE_KEYS.refreshToken, refreshToken || ''],
-      ]);
+      await secureStorage.setItem(AUTH_STORAGE_KEYS.accessToken, token);
+      await secureStorage.setItem(AUTH_STORAGE_KEYS.refreshToken, refreshToken || '');
     } catch {}
   },
   setUser: async (user) => {
     set({ user });
     try {
-      if (user) await AsyncStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(user));
-      else await AsyncStorage.removeItem(AUTH_STORAGE_KEYS.user);
+      if (user) await secureStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(user));
+      else await secureStorage.removeItem(AUTH_STORAGE_KEYS.user);
     } catch {}
   },
   continueAsGuest: () => {
@@ -84,7 +80,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       hasMore: false,
     });
 
-    // 4. Clear auth store and AsyncStorage
+    // 4. Clear auth store and secure storage
     setAuthToken(null);
     set({
       user: null,
@@ -95,11 +91,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       pendingRegisterRedirect: false,
     });
     try {
-      await AsyncStorage.multiRemove([
-        AUTH_STORAGE_KEYS.accessToken,
-        AUTH_STORAGE_KEYS.refreshToken,
-        AUTH_STORAGE_KEYS.user,
-      ]);
+      await secureStorage.removeItem(AUTH_STORAGE_KEYS.accessToken);
+      await secureStorage.removeItem(AUTH_STORAGE_KEYS.refreshToken);
+      await secureStorage.removeItem(AUTH_STORAGE_KEYS.user);
     } catch {}
   },
   requestRegister: () => {

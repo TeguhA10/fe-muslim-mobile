@@ -375,6 +375,11 @@ export const QiblaScreen: React.FC<QiblaScreenProps> = ({ onBack }) => {
           </View>
         </View>
 
+        {/* Calibration Tip */}
+        <View style={{ marginTop: 12, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: 'rgba(212,175,55,0.08)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={{ fontSize: 13, color: '#D4AF37', flex: 1, textAlign: 'center' }}>💡 Putar HP membentuk angka 8 jika kompas kurang presisi.</Text>
+        </View>
+
         {/* Sensor warning */}
         {!sensorAvailable && (
           <View style={styles.sensorWarning}>

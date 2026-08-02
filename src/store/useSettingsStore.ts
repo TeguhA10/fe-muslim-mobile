@@ -75,10 +75,12 @@ interface SettingsStoreState {
   calculationMethod: CalculationMethodId;
   language: LanguageId;
   reminderOffsetMinutes: number;
+  notifAdzanEnabled: boolean;
   stickyNotifEnabled: boolean;
   setCalculationMethod: (method: CalculationMethodId) => Promise<void>;
   setLanguage: (lang: LanguageId) => Promise<void>;
   setReminderOffsetMinutes: (minutes: number) => Promise<void>;
+  setNotifAdzanEnabled: (enabled: boolean) => Promise<void>;
   setStickyNotifEnabled: (enabled: boolean) => Promise<void>;
   loadSettings: () => Promise<void>;
   t: (key: string) => string;
@@ -88,7 +90,8 @@ export const useSettingsStore = create<SettingsStoreState>((set, get) => ({
   calculationMethod: 'KEMENAG',
   language: 'id',
   reminderOffsetMinutes: 10,
-  stickyNotifEnabled: true,
+  notifAdzanEnabled: true,
+  stickyNotifEnabled: false,
 
   setCalculationMethod: async (method) => {
     set({ calculationMethod: method });
@@ -129,6 +132,20 @@ export const useSettingsStore = create<SettingsStoreState>((set, get) => ({
     AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings)).catch(() => { });
     try {
       await apiClient.post(ENDPOINTS.AUTH.SETTINGS, { reminder_offset_minutes: minutes });
+    } catch (e) { }
+  },
+  setNotifAdzanEnabled: async (enabled) => {
+    set({ notifAdzanEnabled: enabled });
+    const currentSettings = {
+      calculationMethod: get().calculationMethod,
+      language: get().language,
+      reminderOffsetMinutes: get().reminderOffsetMinutes,
+      notifAdzanEnabled: enabled,
+      stickyNotifEnabled: get().stickyNotifEnabled,
+    };
+    AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings)).catch(() => { });
+    try {
+      await apiClient.post(ENDPOINTS.AUTH.SETTINGS, { notif_adzan_enabled: enabled });
     } catch (e) { }
   },
 

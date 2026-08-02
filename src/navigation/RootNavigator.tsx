@@ -12,6 +12,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useLocationStore } from '../store/useLocationStore';
 import { useThemeStore } from '../store/useThemeStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureStorage } from '../utils/secureStorage';
 import { apiClient, setAuthToken } from '../api/apiClient';
 import { ENDPOINTS } from '../api/endpoints';
 
@@ -47,8 +48,8 @@ export const RootNavigator: React.FC = () => {
           useLocationStore.getState().loadSavedLocation(),
           useThemeStore.getState().loadSavedTheme(),
         ]);
-        const storedAccessToken = await AsyncStorage.getItem(AUTH_STORAGE_KEYS.accessToken);
-        const storedRefreshToken = await AsyncStorage.getItem(AUTH_STORAGE_KEYS.refreshToken);
+        const storedAccessToken = await secureStorage.getItem(AUTH_STORAGE_KEYS.accessToken);
+        const storedRefreshToken = await secureStorage.getItem(AUTH_STORAGE_KEYS.refreshToken);
 
         const accessToken = storedAccessToken?.trim() || '';
         const refreshToken = storedRefreshToken?.trim() || '';

@@ -54,7 +54,7 @@ import {
   X,
   UserPlus,
   Clock,
-  Globe,
+  Compass,
   Trash2,
 } from 'lucide-react-native';
 
@@ -644,7 +644,7 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
             >
               <View style={styles.menuLeft}>
                 <View style={[styles.iconContainer, { backgroundColor: '#FEE2E2' }]}>
-                  <Globe color="#991B1B" size={20} />
+                  <Compass color="#991B1B" size={20} />
                 </View>
                 <View style={styles.menuTextGroup}>
                   <Text style={[styles.menuTitle, { color: colors.text }]}>Bahasa Aplikasi</Text>
