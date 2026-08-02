@@ -54,3 +54,33 @@ Dokumen ini berisi daftar kendala (Issues) dan rekomendasi solusi teknis untuk a
 - **Saran Solusi**:
   1. Tambahkan petunjuk visual kalibrasi sensor jika keakuratan magnetometer rendah (*accuracy <= 1*).
   2. Sediakan opsi *manual location override* agar user tetap bisa melihat azimuth Kiblat walau sensor magnetometer HP tidak presisi.
+
+---
+
+### 6. ⚡ Migrasi Feed Komunitas ke `@shopify/flash-list`
+- **Kategori**: Mobile UI & FPS Performance
+- **Deskripsi Masalah**:
+  `FlatList` bawaan React Native dapat mengalami *frame drop* (UI lagging) dan *blank space* saat di-scroll cepat pada feed komunitas dengan ribuan postingan & gambar.
+- **Saran Solusi**:
+  1. Ganti `FlatList` di `HomeScreen`, `CommentModal`, dan `NotificationScreen` dengan `@shopify/flash-list`.
+  2. Dapatkan performa scrolling konsisten di 60 FPS dan efisiensi pemakaian RAM hingga 50%.
+
+---
+
+### 7. 🔒 Encrypted Token Storage (`expo-secure-store`)
+- **Kategori**: Security
+- **Deskripsi Masalah**:
+  Penyimpanan token JWT di `AsyncStorage` tidak terenkripsi, rentan dibaca oleh aplikasi berbahaya pada perangkat Android/iOS yang ter-root atau jailbreak.
+- **Saran Solusi**:
+  1. Migrasikan penyimpanan Access Token & Refresh Token ke `expo-secure-store` (Android KeyStore & iOS Keychain).
+
+---
+
+### 8. 📸 Direct Image Upload ke Cloudinary CDN
+- **Kategori**: Network Efficiency & Bandwidth
+- **Deskripsi Masalah**:
+  Mengunggah gambar via backend server meningkatkan konsumsi data dan latency upload bagi user.
+- **Saran Solusi**:
+  1. Minta presigned upload signature dari backend (`GET /api/v1/posts/upload-signature`).
+  2. Unggah gambar postingan secara langsung dari perangkat mobile ke Cloudinary CDN via `FormData` / `fetch`.
+
