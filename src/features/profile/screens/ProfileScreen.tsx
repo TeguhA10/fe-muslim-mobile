@@ -35,6 +35,7 @@ import { PrivacyPolicyScreen } from './PrivacyPolicyScreen';
 import { ChangePasswordScreen } from '../../auth/screens/ChangePasswordScreen';
 import { EditProfileScreen } from './EditProfileScreen';
 import { MyPostsScreen } from './MyPostsScreen';
+import { TrashPostsScreen } from './TrashPostsScreen';
 import { UserProfileScreen } from './UserProfileScreen';
 import {
   User,
@@ -54,6 +55,7 @@ import {
   UserPlus,
   Clock,
   Globe,
+  Trash2,
 } from 'lucide-react-native';
 
 // Constants imported from useSettingsStore
@@ -119,12 +121,14 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
   const [showChangePassword, setShowChangePassword] = useState<boolean>(false);
   const [showEditProfile, setShowEditProfile] = useState<boolean>(false);
   const [showMyPosts, setShowMyPosts] = useState<boolean>(false);
+  const [showTrashPosts, setShowTrashPosts] = useState<boolean>(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!navigation) return;
     const unsubscribe = navigation.addListener('tabPress', () => {
       setShowMyPosts(false);
+      setShowTrashPosts(false);
       setShowEditProfile(false);
       setShowChangePassword(false);
       setShowPrivacyPolicy(false);
@@ -369,6 +373,15 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
         bio={(profileData?.user as any)?.bio}
         onBack={() => setShowMyPosts(false)}
         onPostDeleted={() => fetchProfileData(true)}
+      />
+    );
+  }
+
+  if (showTrashPosts) {
+    return (
+      <TrashPostsScreen
+        onBack={() => setShowTrashPosts(false)}
+        onPostRestored={() => fetchProfileData(true)}
       />
     );
   }
@@ -687,6 +700,29 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
                   <ShieldCheck color="#047857" size={20} />
                 </View>
                 <Text style={[styles.menuTitleOnly, { color: colors.text }]}>Kebijakan Privasi</Text>
+              </View>
+              <ChevronRight color={colors.textMuted} size={18} />
+            </TouchableOpacity>
+
+            <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+
+            {/* Sampah / Postingan Dihapus */}
+            <TouchableOpacity
+              style={styles.menuRow}
+              activeOpacity={0.7}
+              onPress={() => {
+                if (isGuest) {
+                  requestRegister();
+                  return;
+                }
+                setShowTrashPosts(true);
+              }}
+            >
+              <View style={styles.menuLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: '#FEE2E2' }]}>
+                  <Trash2 color="#DC2626" size={20} />
+                </View>
+                <Text style={[styles.menuTitleOnly, { color: colors.text }]}>Sampah / Postingan Dihapus</Text>
               </View>
               <ChevronRight color={colors.textMuted} size={18} />
             </TouchableOpacity>

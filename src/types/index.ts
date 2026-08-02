@@ -26,6 +26,7 @@ export interface Post {
   comments_count: number;
   is_liked_by_me: boolean;
   is_bookmarked_by_me?: boolean;
+  deleted_at?: string;
 }
 
 export interface PostComment {

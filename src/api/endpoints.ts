@@ -36,6 +36,9 @@ export const ENDPOINTS = {
     BOOKMARK: (id: string) => `/posts/${id}/bookmark`,
     COMMENTS: (id: string) => `/posts/${id}/comments`,
     DELETE: (id: string) => `/posts/${id}`,
+    PERMANENT_DELETE: (id: string) => `/posts/${id}/permanent`,
+    RESTORE: (id: string) => `/posts/${id}/restore`,
+    TRASH: '/posts/trash',
   },
   MASJID: {
     NEARBY: '/masjid/nearby',
