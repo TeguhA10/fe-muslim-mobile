@@ -4,7 +4,7 @@
     "slug": "muslim-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo_muslim_app.png",
+    "icon": "./assets/logo2_muslim_app.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
