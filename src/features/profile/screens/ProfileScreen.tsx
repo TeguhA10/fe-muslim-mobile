@@ -17,6 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
 import { Card } from '../../../components/common/Card';
 import { CustomAlert } from '../../../components/common/CustomAlert';
+import { ImageViewerModal } from '../../../components/common/ImageViewerModal';
 import { SPACING } from '../../../constants/theme';
 import { useThemeStore } from '../../../store/useThemeStore';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -93,6 +94,7 @@ export const ProfileScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState<boolean>(false);
+  const [viewAvatarModal, setViewAvatarModal] = useState<boolean>(false);
 
   const [notifAdzan, setNotifAdzan] = useState<boolean>(true);
   const [isOffsetModalOpen, setIsOffsetModalOpen] = useState<boolean>(false);
@@ -362,15 +364,24 @@ export const ProfileScreen: React.FC = () => {
           {/* Hero Profile Card */}
           <Card style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.avatarWrapper}>
-              <View style={[styles.avatarRing, { borderColor: colors.accent }]}>
-                {profileData?.user?.avatar_url ? (
-                  <Image source={{ uri: profileData.user.avatar_url }} style={styles.avatarImage} />
-                ) : (
-                  <View style={[styles.avatarBox, { backgroundColor: colors.primaryDark }]}>
-                    <Text style={styles.avatarText}>{getInitials(profileData?.user?.name || 'Ahmad Hidayat')}</Text>
-                  </View>
-                )}
-              </View>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  if (profileData?.user?.avatar_url) {
+                    setViewAvatarModal(true);
+                  }
+                }}
+              >
+                <View style={[styles.avatarRing, { borderColor: colors.accent }]}>
+                  {profileData?.user?.avatar_url ? (
+                    <Image source={{ uri: profileData.user.avatar_url }} style={styles.avatarImage} />
+                  ) : (
+                    <View style={[styles.avatarBox, { backgroundColor: colors.primaryDark }]}>
+                      <Text style={styles.avatarText}>{getInitials(profileData?.user?.name || 'Ahmad Hidayat')}</Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.editAvatarBtn, { backgroundColor: colors.accent }]}
                 onPress={handlePickAndUploadAvatar}
@@ -732,6 +743,13 @@ export const ProfileScreen: React.FC = () => {
         cancelText="Batal"
         onConfirm={executeLogout}
         onClose={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+      />
+
+      {/* Full-Screen Avatar Image Viewer */}
+      <ImageViewerModal
+        visible={viewAvatarModal}
+        imageUrls={profileData?.user?.avatar_url ? [profileData.user.avatar_url] : []}
+        onClose={() => setViewAvatarModal(false)}
       />
     </ScreenWrapper>
   );

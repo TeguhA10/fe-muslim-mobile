@@ -95,6 +95,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userId, on
   const [commentsList, setCommentsList] = useState<CommentItem[]>([]);
   const [commentText, setCommentText] = useState<string>('');
   const [replyToComment, setReplyToComment] = useState<{ id: string; user_name?: string } | null>(null);
+  const [viewAvatarModal, setViewAvatarModal] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchPublicProfile = async () => {
@@ -275,15 +276,24 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userId, on
           {/* User Hero Profile Card */}
           <Card style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.avatarWrapper}>
-              <View style={[styles.avatarRing, { borderColor: colors.accent }]}>
-                {profile.avatar_url ? (
-                  <Image source={{ uri: profile.avatar_url }} style={styles.avatarImage} />
-                ) : (
-                  <View style={[styles.avatarBox, { backgroundColor: colors.primaryDark }]}>
-                    <Text style={styles.avatarText}>{getInitials(profile.name)}</Text>
-                  </View>
-                )}
-              </View>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  if (profile?.avatar_url) {
+                    setViewAvatarModal(true);
+                  }
+                }}
+              >
+                <View style={[styles.avatarRing, { borderColor: colors.accent }]}>
+                  {profile.avatar_url ? (
+                    <Image source={{ uri: profile.avatar_url }} style={styles.avatarImage} />
+                  ) : (
+                    <View style={[styles.avatarBox, { backgroundColor: colors.primaryDark }]}>
+                      <Text style={styles.avatarText}>{getInitials(profile.name)}</Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.nameRow}>
@@ -445,6 +455,13 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userId, on
           </View>
         </View>
       </Modal>
+
+      {/* Full-Screen Avatar Image Viewer */}
+      <ImageViewerModal
+        visible={viewAvatarModal}
+        imageUrls={profile?.avatar_url ? [profile.avatar_url] : []}
+        onClose={() => setViewAvatarModal(false)}
+      />
     </ScreenWrapper>
   );
 };

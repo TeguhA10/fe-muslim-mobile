@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const THEME_STORAGE_KEY = 'user_saved_theme_v1';
 
 export interface ThemeColors {
   primary: string;
@@ -56,22 +59,42 @@ interface ThemeStoreState {
   colors: ThemeColors;
   toggleTheme: () => void;
   setDarkMode: (enabled: boolean) => void;
+  loadSavedTheme: () => Promise<void>;
 }
 
-export const useThemeStore = create<ThemeStoreState>((set) => ({
+export const useThemeStore = create<ThemeStoreState>((set, get) => ({
   isDarkMode: false,
   colors: LIGHT_THEME,
-  toggleTheme: () =>
-    set((state) => {
-      const nextDark = !state.isDarkMode;
-      return {
-        isDarkMode: nextDark,
-        colors: nextDark ? DARK_THEME : LIGHT_THEME,
-      };
-    }),
-  setDarkMode: (enabled) =>
+  toggleTheme: () => {
+    const nextDark = !get().isDarkMode;
+    set({
+      isDarkMode: nextDark,
+      colors: nextDark ? DARK_THEME : LIGHT_THEME,
+    });
+    AsyncStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ isDarkMode: nextDark })).catch(() => {});
+  },
+  setDarkMode: (enabled) => {
     set({
       isDarkMode: enabled,
       colors: enabled ? DARK_THEME : LIGHT_THEME,
-    }),
+    });
+    AsyncStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ isDarkMode: enabled })).catch(() => {});
+  },
+  loadSavedTheme: async () => {
+    try {
+      const saved = await AsyncStorage.getItem(THEME_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.isDarkMode === 'boolean') {
+          set({
+            isDarkMode: parsed.isDarkMode,
+            colors: parsed.isDarkMode ? DARK_THEME : LIGHT_THEME,
+          });
+        }
+      }
+    } catch {}
+  },
 }));
+
+// Auto-load saved theme on initial script import
+useThemeStore.getState().loadSavedTheme();

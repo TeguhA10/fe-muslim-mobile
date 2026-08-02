@@ -63,10 +63,19 @@ export const HomeScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
   // Filter States
-  const [sortFilter, setSortFilter] = useState<'terbaru' | 'terpopuler' | 'paling_banyak_diskusi'>('terbaru');
+  const [sortFilters, setSortFilters] = useState<string[]>(['terbaru']);
   const [mediaFilter, setMediaFilter] = useState<'semua' | 'gambar_saja'>('semua');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('semua');
+  const [selectedCategoryFilters, setSelectedCategoryFilters] = useState<string[]>([]);
+
+  const toggleSortFilter = (filterKey: string) => {
+    if (sortFilters.includes(filterKey)) {
+      const updated = sortFilters.filter((s) => s !== filterKey);
+      setSortFilters(updated.length > 0 ? updated : ['terbaru']);
+    } else {
+      setSortFilters([...sortFilters, filterKey]);
+    }
+  };
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -121,15 +130,18 @@ export const HomeScreen: React.FC = () => {
       if (activeTab === 'bookmarks') url = ENDPOINTS.POSTS.BOOKMARKS;
       if (activeTab === 'liked') url = ENDPOINTS.POSTS.LIKED_POSTS;
 
+      const categoryParam = selectedCategoryFilters.length > 0 ? selectedCategoryFilters.join(',') : 'semua';
+      const sortParam = sortFilters.length > 0 ? sortFilters.join(',') : 'terbaru';
+
       const res = await apiClient.get(url, {
         params: {
           user_id: useAuthStore.getState().user?.id,
           limit: PAGE_SIZE,
           offset: pageNum * PAGE_SIZE,
-          sort: sortFilter,
+          sort: sortParam,
           media: mediaFilter,
           search: searchQuery.trim(),
-          category: selectedCategoryFilter,
+          category: categoryParam,
         },
       });
 
@@ -156,7 +168,7 @@ export const HomeScreen: React.FC = () => {
     setPage(0);
     setHasMore(true);
     fetchPostsData(0, true);
-  }, [activeTab, sortFilter, mediaFilter, searchQuery, selectedCategoryFilter]);
+  }, [activeTab, sortFilters, mediaFilter, searchQuery, selectedCategoryFilters]);
 
   const handleLoadMore = () => {
     if (!loadingMore && hasMore && !loading && !refreshing) {
@@ -502,15 +514,12 @@ export const HomeScreen: React.FC = () => {
               style={[
                 styles.chip,
                 { backgroundColor: colors.surface, borderColor: colors.border },
-                sortFilter === 'terbaru' && mediaFilter === 'semua' && { backgroundColor: colors.primary, borderColor: colors.primary },
+                sortFilters.includes('terbaru') && { backgroundColor: colors.primary, borderColor: colors.primary },
               ]}
-              onPress={() => {
-                setSortFilter('terbaru');
-                setMediaFilter('semua');
-              }}
+              onPress={() => toggleSortFilter('terbaru')}
             >
-              <Zap color={sortFilter === 'terbaru' && mediaFilter === 'semua' ? '#FFFFFF' : colors.text} size={14} />
-              <Text style={[styles.chipText, { color: colors.text }, sortFilter === 'terbaru' && mediaFilter === 'semua' && { color: '#FFFFFF', fontWeight: 'bold' }]}>
+              <Zap color={sortFilters.includes('terbaru') ? '#FFFFFF' : colors.text} size={14} />
+              <Text style={[styles.chipText, { color: colors.text }, sortFilters.includes('terbaru') && { color: '#FFFFFF', fontWeight: 'bold' }]}>
                 ⚡ Terbaru
               </Text>
             </TouchableOpacity>
@@ -519,15 +528,12 @@ export const HomeScreen: React.FC = () => {
               style={[
                 styles.chip,
                 { backgroundColor: colors.surface, borderColor: colors.border },
-                sortFilter === 'terpopuler' && mediaFilter === 'semua' && { backgroundColor: colors.primary, borderColor: colors.primary },
+                sortFilters.includes('terpopuler') && { backgroundColor: colors.primary, borderColor: colors.primary },
               ]}
-              onPress={() => {
-                setSortFilter('terpopuler');
-                setMediaFilter('semua');
-              }}
+              onPress={() => toggleSortFilter('terpopuler')}
             >
-              <Flame color={sortFilter === 'terpopuler' && mediaFilter === 'semua' ? '#FFFFFF' : '#EF4444'} size={14} />
-              <Text style={[styles.chipText, { color: colors.text }, sortFilter === 'terpopuler' && mediaFilter === 'semua' && { color: '#FFFFFF', fontWeight: 'bold' }]}>
+              <Flame color={sortFilters.includes('terpopuler') ? '#FFFFFF' : '#EF4444'} size={14} />
+              <Text style={[styles.chipText, { color: colors.text }, sortFilters.includes('terpopuler') && { color: '#FFFFFF', fontWeight: 'bold' }]}>
                 🔥 Terpopuler
               </Text>
             </TouchableOpacity>
@@ -536,15 +542,12 @@ export const HomeScreen: React.FC = () => {
               style={[
                 styles.chip,
                 { backgroundColor: colors.surface, borderColor: colors.border },
-                sortFilter === 'paling_banyak_diskusi' && { backgroundColor: colors.primary, borderColor: colors.primary },
+                sortFilters.includes('paling_banyak_diskusi') && { backgroundColor: colors.primary, borderColor: colors.primary },
               ]}
-              onPress={() => {
-                setSortFilter('paling_banyak_diskusi');
-                setMediaFilter('semua');
-              }}
+              onPress={() => toggleSortFilter('paling_banyak_diskusi')}
             >
-              <MessageCircle color={sortFilter === 'paling_banyak_diskusi' ? '#FFFFFF' : colors.primary} size={14} />
-              <Text style={[styles.chipText, { color: colors.text }, sortFilter === 'paling_banyak_diskusi' && { color: '#FFFFFF', fontWeight: 'bold' }]}>
+              <MessageCircle color={sortFilters.includes('paling_banyak_diskusi') ? '#FFFFFF' : colors.primary} size={14} />
+              <Text style={[styles.chipText, { color: colors.text }, sortFilters.includes('paling_banyak_diskusi') && { color: '#FFFFFF', fontWeight: 'bold' }]}>
                 💬 Banyak Diskusi
               </Text>
             </TouchableOpacity>
@@ -566,38 +569,47 @@ export const HomeScreen: React.FC = () => {
             </TouchableOpacity>
           </ScrollView>
 
-          {/* Category Filter Chips Row */}
+          {/* Category Filter Chips Row (Multi-select) */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryFilterRow}>
             <TouchableOpacity
               style={[
                 styles.catFilterChip,
                 { backgroundColor: colors.surface, borderColor: colors.border },
-                selectedCategoryFilter === 'semua' && { backgroundColor: colors.primary, borderColor: colors.primary },
+                selectedCategoryFilters.length === 0 && { backgroundColor: colors.primary, borderColor: colors.primary },
               ]}
-              onPress={() => setSelectedCategoryFilter('semua')}
+              onPress={() => setSelectedCategoryFilters([])}
             >
-              <Text style={[styles.catFilterText, { color: colors.text }, selectedCategoryFilter === 'semua' && { color: '#FFFFFF', fontWeight: 'bold' }]}>
+              <Text style={[styles.catFilterText, { color: colors.text }, selectedCategoryFilters.length === 0 && { color: '#FFFFFF', fontWeight: 'bold' }]}>
                 Semua Kategori
               </Text>
             </TouchableOpacity>
             {categoriesLoading && categories.length === 0 ? (
               <ActivityIndicator size="small" color={colors.primary} style={{ marginHorizontal: 8 }} />
             ) : (
-              categories.map((cat) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={[
-                    styles.catFilterChip,
-                    { backgroundColor: colors.surface, borderColor: colors.border },
-                    selectedCategoryFilter === cat.name && { backgroundColor: colors.primary, borderColor: colors.primary },
-                  ]}
-                  onPress={() => setSelectedCategoryFilter(cat.name)}
-                >
-                  <Text style={[styles.catFilterText, { color: colors.text }, selectedCategoryFilter === cat.name && { color: '#FFFFFF', fontWeight: 'bold' }]}>
-                    {cat.icon ? `${cat.icon} ${cat.name}` : cat.name}
-                  </Text>
-                </TouchableOpacity>
-              ))
+              categories.map((cat) => {
+                const isSelected = selectedCategoryFilters.includes(cat.name);
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[
+                      styles.catFilterChip,
+                      { backgroundColor: colors.surface, borderColor: colors.border },
+                      isSelected && { backgroundColor: colors.primary, borderColor: colors.primary },
+                    ]}
+                    onPress={() => {
+                      if (isSelected) {
+                        setSelectedCategoryFilters(selectedCategoryFilters.filter((c) => c !== cat.name));
+                      } else {
+                        setSelectedCategoryFilters([...selectedCategoryFilters, cat.name]);
+                      }
+                    }}
+                  >
+                    <Text style={[styles.catFilterText, { color: colors.text }, isSelected && { color: '#FFFFFF', fontWeight: 'bold' }]}>
+                      {cat.icon ? `${cat.icon} ${cat.name}` : cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })
             )}
           </ScrollView>
         </View>

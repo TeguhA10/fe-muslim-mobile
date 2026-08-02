@@ -95,26 +95,37 @@ export const PostCard: React.FC<PostCardProps> = ({
     <Card style={[styles.card, style]}>
       {/* ── Header: avatar + nama + waktu + kategori + bookmark ── */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerLeft}
-          activeOpacity={0.7}
-          onPress={() => item.user_id && onPressAuthor?.(item.user_id)}
-          disabled={!onPressAuthor || !item.user_id}
-        >
-          {avatarUri ? (
-            <Image source={{ uri: avatarUri }} style={styles.avatar} />
-          ) : (
-            <View
-              style={[
-                styles.avatarPlaceholder,
-                { backgroundColor: isDarkMode ? colors.primaryDark : '#E0E7FF' },
-              ]}
-            >
-              <Text style={[styles.avatarInitial, { color: colors.primary }]}>{initial}</Text>
-            </View>
-          )}
+        <View style={styles.headerLeft}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              if (avatarUri && onPressImage) {
+                onPressImage([avatarUri], 0);
+              } else if (item.user_id && onPressAuthor) {
+                onPressAuthor(item.user_id);
+              }
+            }}
+          >
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.avatar} />
+            ) : (
+              <View
+                style={[
+                  styles.avatarPlaceholder,
+                  { backgroundColor: isDarkMode ? colors.primaryDark : '#E0E7FF' },
+                ]}
+              >
+                <Text style={[styles.avatarInitial, { color: colors.primary }]}>{initial}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-          <View style={styles.headerMeta}>
+          <TouchableOpacity
+            style={styles.headerMeta}
+            activeOpacity={0.7}
+            onPress={() => item.user_id && onPressAuthor?.(item.user_id)}
+            disabled={!onPressAuthor || !item.user_id}
+          >
             <Text style={[styles.authorName, { color: colors.text }]} numberOfLines={1}>
               {authorName}
             </Text>
@@ -136,8 +147,8 @@ export const PostCard: React.FC<PostCardProps> = ({
                 </View>
               )}
             </View>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
 
         {/* Bookmark di pojok kanan atas */}
         <TouchableOpacity

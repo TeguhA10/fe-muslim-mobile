@@ -211,26 +211,35 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
           <Card style={[styles.postCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             {/* Author Header */}
             <View style={styles.authorHeader}>
-              <TouchableOpacity
-                style={styles.authorLeft}
-                activeOpacity={0.7}
-                onPress={() => post.user_id && onPressAuthor?.(post.user_id)}
-                disabled={!onPressAuthor || !post.user_id}
-              >
-                {avatarUri ? (
-                  <Image source={{ uri: avatarUri }} style={styles.avatar} />
-                ) : (
-                  <View
-                    style={[
-                      styles.avatarPlaceholder,
-                      { backgroundColor: isDarkMode ? colors.primaryDark : '#E0E7FF' },
-                    ]}
-                  >
-                    <Text style={[styles.avatarInitial, { color: colors.primary }]}>{initial}</Text>
-                  </View>
-                )}
+              <View style={styles.authorLeft}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    if (avatarUri && onPressImage) {
+                      onPressImage([avatarUri], 0);
+                    }
+                  }}
+                >
+                  {avatarUri ? (
+                    <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                  ) : (
+                    <View
+                      style={[
+                        styles.avatarPlaceholder,
+                        { backgroundColor: isDarkMode ? colors.primaryDark : '#E0E7FF' },
+                      ]}
+                    >
+                      <Text style={[styles.avatarInitial, { color: colors.primary }]}>{initial}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
 
-                <View style={styles.authorMeta}>
+                <TouchableOpacity
+                  style={styles.authorMeta}
+                  activeOpacity={0.7}
+                  onPress={() => post.user_id && onPressAuthor?.(post.user_id)}
+                  disabled={!onPressAuthor || !post.user_id}
+                >
                   <Text style={[styles.authorName, { color: colors.text }]}>{authorName}</Text>
                   <View style={styles.metaRow}>
                     <Text style={[styles.postTime, { color: colors.textMuted }]}>
@@ -250,8 +259,8 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
                       </View>
                     )}
                   </View>
-                </View>
-              </TouchableOpacity>
+                </TouchableOpacity>
+              </View>
 
               <TouchableOpacity style={styles.bookmarkBtn} onPress={handleToggleBookmark} activeOpacity={0.7}>
                 <Bookmark

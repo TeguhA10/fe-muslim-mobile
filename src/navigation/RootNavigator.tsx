@@ -10,6 +10,7 @@ import { VerifyOtpScreen } from '../features/auth/screens/VerifyOtpScreen';
 import { ForgotPasswordScreen } from '../features/auth/screens/ForgotPasswordScreen';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLocationStore } from '../store/useLocationStore';
+import { useThemeStore } from '../store/useThemeStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient, setAuthToken } from '../api/apiClient';
 import { ENDPOINTS } from '../api/endpoints';
@@ -42,7 +43,10 @@ export const RootNavigator: React.FC = () => {
 
     const bootstrapAuth = async () => {
       try {
-        await useLocationStore.getState().loadSavedLocation();
+        await Promise.all([
+          useLocationStore.getState().loadSavedLocation(),
+          useThemeStore.getState().loadSavedTheme(),
+        ]);
         const storedAccessToken = await AsyncStorage.getItem(AUTH_STORAGE_KEYS.accessToken);
         const storedRefreshToken = await AsyncStorage.getItem(AUTH_STORAGE_KEYS.refreshToken);
 
