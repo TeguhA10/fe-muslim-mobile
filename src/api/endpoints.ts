@@ -45,4 +45,13 @@ export const ENDPOINTS = {
     REVIEW_SUMMARY: (id: string) => `/masjid/${id}/reviews/summary`,
     DELETE_REVIEW: (reviewId: string) => `/masjid/reviews/${reviewId}`,
   },
+  NOTIFICATIONS: {
+    BASE: '/notifications',
+    UNREAD_COUNT: '/notifications/unread-count',
+    READ_ALL: '/notifications/read-all',
+    MARK_READ: (id: string) => `/notifications/${id}/read`,
+    PUSH_TOKEN: '/notifications/push-token',
+    DELETE_SINGLE: (id: string) => `/notifications/${id}`,
+    DELETE_ALL: '/notifications/clear-all',
+  },
 };

@@ -27,10 +27,14 @@ import { useGuestGuard } from '../../../hooks/useGuestGuard';
 import { apiClient } from '../../../api/apiClient';
 import { ENDPOINTS } from '../../../api/endpoints';
 import { Post } from '../../../types';
-import { Plus, X, Send, CornerDownRight, Search, Zap, Flame, Image as ImageIcon, MessageCircle, Tag, Bookmark, Heart, Users } from 'lucide-react-native';
+import { Plus, X, Send, CornerDownRight, Search, Zap, Flame, Image as ImageIcon, MessageCircle, Tag, Bookmark, Heart, Users, Bell } from 'lucide-react-native';
 import { UserProfileScreen } from '../../profile/screens/UserProfileScreen';
+import { NotificationScreen } from '../../notifications/screens/NotificationScreen';
 import { useCategories } from '../../../hooks/useCategories';
 import { useAuthStore } from '../../../store/useAuthStore';
+import { useNotificationStore } from '../../../store/useNotificationStore';
+import { NotificationService } from '../../../services/notification.service';
+import { socketService } from '../../../services/socket.service';
 import { formatRelativeTime } from '../../../utils/dateFormatter';
 
 export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
@@ -39,12 +43,27 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const [isGuestModalOpen, setIsGuestModalOpen] = useState<boolean>(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedPostForDetail, setSelectedPostForDetail] = useState<any | null>(null);
+  const [showNotificationScreen, setShowNotificationScreen] = useState<boolean>(false);
+  const { unreadCount, fetchUnreadCount } = useNotificationStore();
+  const { isAuthenticated, user } = useAuthStore();
+
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      fetchUnreadCount();
+      socketService.connect(user.id);
+      NotificationService.registerPushToken();
+      NotificationService.setupNotificationListeners();
+    } else {
+      socketService.disconnect();
+    }
+  }, [isAuthenticated, user?.id]);
 
   useEffect(() => {
     if (!navigation) return;
     const unsubscribe = navigation.addListener('tabPress', () => {
       setSelectedPostForDetail(null);
       setSelectedUserId(null);
+      setShowNotificationScreen(false);
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
     });
     return unsubscribe;
@@ -400,6 +419,28 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
     }
   };
 
+  if (showNotificationScreen) {
+    return (
+      <NotificationScreen
+        onBack={() => setShowNotificationScreen(false)}
+        onSelectNotification={async (item) => {
+          setShowNotificationScreen(false);
+          if (item.entity_type === 'POST' && item.entity_id) {
+            try {
+              const res = await apiClient.get(ENDPOINTS.POSTS.FEED + `?id=${item.entity_id}`);
+              const fetchedPost = res.data?.data?.[0];
+              if (fetchedPost) {
+                setSelectedPostForDetail(fetchedPost);
+              }
+            } catch {}
+          } else if (item.entity_type === 'USER' && item.entity_id) {
+            setSelectedUserId(item.entity_id);
+          }
+        }}
+      />
+    );
+  }
+
   if (selectedUserId) {
     return <UserProfileScreen userId={selectedUserId} onBack={() => setSelectedUserId(null)} />;
   }
@@ -438,17 +479,38 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
       {/* Top Header */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>Muslim Feed</Text>
-        <TouchableOpacity
-          style={[styles.createButton, { backgroundColor: colors.primary }]}
-          onPress={guardAction(
-            () => setIsModalOpen(true),
-            () => setIsGuestModalOpen(true)
-          )}
-          activeOpacity={0.85}
-        >
-          <Plus color="#FFFFFF" size={20} />
-          <Text style={styles.createButtonText}>Buat Post</Text>
-        </TouchableOpacity>
+
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={[styles.bellButton, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}
+            onPress={guardAction(
+              () => setShowNotificationScreen(true),
+              () => setIsGuestModalOpen(true)
+            )}
+            activeOpacity={0.8}
+          >
+            <Bell size={20} color={colors.text} />
+            {unreadCount > 0 && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.createButton, { backgroundColor: colors.primary }]}
+            onPress={guardAction(
+              () => setIsModalOpen(true),
+              () => setIsGuestModalOpen(true)
+            )}
+            activeOpacity={0.85}
+          >
+            <Plus color="#FFFFFF" size={20} />
+            <Text style={styles.createButtonText}>Buat Post</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Navigation Tabs (Horizontal Scrollable) */}
@@ -973,6 +1035,36 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bellButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  unreadBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#EF4444',
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  unreadBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
   },
   createButton: {
     flexDirection: 'row',

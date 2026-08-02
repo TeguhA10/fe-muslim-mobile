@@ -1,7 +1,10 @@
 import { create } from 'zustand';
 import { User } from '../types';
-import { setAuthToken } from '../api/apiClient';
+import { apiClient, setAuthToken } from '../api/apiClient';
+import { ENDPOINTS } from '../api/endpoints';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { socketService } from '../services/socket.service';
+import { useNotificationStore } from './useNotificationStore';
 
 const AUTH_STORAGE_KEYS = {
   accessToken: 'auth_access_token',
@@ -65,10 +68,38 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isGuest: true, pendingRegisterRedirect: false });
   },
   logout: async () => {
-    setAuthToken(null);
-    set({ user: null, token: null, refreshToken: null, isAuthenticated: false, isGuest: false, pendingRegisterRedirect: false });
+    // 1. Call backend API to clear push token & invalidate tokens
     try {
-      await AsyncStorage.multiRemove([AUTH_STORAGE_KEYS.accessToken, AUTH_STORAGE_KEYS.refreshToken, AUTH_STORAGE_KEYS.user]);
+      await apiClient.post(ENDPOINTS.AUTH.LOGOUT);
+    } catch {}
+
+    // 2. Disconnect Socket.IO session
+    socketService.disconnect();
+
+    // 3. Clear in-app notification state
+    useNotificationStore.setState({
+      notifications: [],
+      unreadCount: 0,
+      total: 0,
+      hasMore: false,
+    });
+
+    // 4. Clear auth store and AsyncStorage
+    setAuthToken(null);
+    set({
+      user: null,
+      token: null,
+      refreshToken: null,
+      isAuthenticated: false,
+      isGuest: false,
+      pendingRegisterRedirect: false,
+    });
+    try {
+      await AsyncStorage.multiRemove([
+        AUTH_STORAGE_KEYS.accessToken,
+        AUTH_STORAGE_KEYS.refreshToken,
+        AUTH_STORAGE_KEYS.user,
+      ]);
     } catch {}
   },
   requestRegister: () => {
