@@ -10,12 +10,25 @@ import { QiblaScreen } from './QiblaScreen';
 import { HijriCalendarYearScreen } from './HijriCalendarYearScreen';
 import { Compass, Calendar, Sparkles, ChevronRight, MapPin } from 'lucide-react-native';
 
-export const IbadahScreen: React.FC = () => {
+export const IbadahScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const { colors, isDarkMode } = useThemeStore();
   const { city } = useLocationStore();
   const [showQiblaCompass, setShowQiblaCompass] = useState<boolean>(false);
   const [showHijriYearCalendar, setShowHijriYearCalendar] = useState<boolean>(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState<boolean>(false);
+
+  const scrollViewRef = React.useRef<ScrollView>(null);
+
+  React.useEffect(() => {
+    if (!navigation) return;
+    const unsubscribe = navigation.addListener('tabPress', () => {
+      setShowQiblaCompass(false);
+      setShowHijriYearCalendar(false);
+      setIsLocationModalOpen(false);
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const islamicEvents = [
     { name: 'Maulid Nabi Muhammad SAW', date: '12 Rabiul Awal 1448 H', gregorian: '25 Agustus 2026', daysLeft: 24 },
@@ -33,7 +46,7 @@ export const IbadahScreen: React.FC = () => {
 
   return (
     <ScreenWrapper style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false}>
         <Text style={[styles.title, { color: colors.text }]}>Modul Ibadah</Text>
 
         {/* Hijri Calendar Banner */}

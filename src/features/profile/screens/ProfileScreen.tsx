@@ -18,6 +18,7 @@ import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
 import { Card } from '../../../components/common/Card';
 import { CustomAlert } from '../../../components/common/CustomAlert';
 import { ImageViewerModal } from '../../../components/common/ImageViewerModal';
+import { UserListModal } from '../../../components/common/UserListModal';
 import { SPACING } from '../../../constants/theme';
 import { useThemeStore } from '../../../store/useThemeStore';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -34,6 +35,7 @@ import { PrivacyPolicyScreen } from './PrivacyPolicyScreen';
 import { ChangePasswordScreen } from '../../auth/screens/ChangePasswordScreen';
 import { EditProfileScreen } from './EditProfileScreen';
 import { MyPostsScreen } from './MyPostsScreen';
+import { UserProfileScreen } from './UserProfileScreen';
 import {
   User,
   Moon,
@@ -74,12 +76,14 @@ interface ProfileData {
     posts_count: number;
     completed_prayers_today: number;
     saved_masjids_count: number;
+    followers_count?: number;
+    following_count?: number;
   };
 }
 
-export const ProfileScreen: React.FC = () => {
+export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const { isDarkMode, colors, toggleTheme } = useThemeStore();
-  const { logout, isGuest } = useAuthStore();
+  const { logout, isGuest, user: currentUser } = useAuthStore();
   const { requestRegister } = useGuestGuard();
   const {
     calculationMethod,
@@ -96,6 +100,15 @@ export const ProfileScreen: React.FC = () => {
   const [uploadingAvatar, setUploadingAvatar] = useState<boolean>(false);
   const [viewAvatarModal, setViewAvatarModal] = useState<boolean>(false);
 
+  // UserListModal state for followers / following
+  const [userListModalConfig, setUserListModalConfig] = useState<{
+    visible: boolean;
+    tab: 'followers' | 'following';
+  }>({
+    visible: false,
+    tab: 'followers',
+  });
+
   const [notifAdzan, setNotifAdzan] = useState<boolean>(true);
   const [isOffsetModalOpen, setIsOffsetModalOpen] = useState<boolean>(false);
   const [selectedMethod, setSelectedMethod] = useState<string>('KEMENAG');
@@ -106,6 +119,19 @@ export const ProfileScreen: React.FC = () => {
   const [showChangePassword, setShowChangePassword] = useState<boolean>(false);
   const [showEditProfile, setShowEditProfile] = useState<boolean>(false);
   const [showMyPosts, setShowMyPosts] = useState<boolean>(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!navigation) return;
+    const unsubscribe = navigation.addListener('tabPress', () => {
+      setShowMyPosts(false);
+      setShowEditProfile(false);
+      setShowChangePassword(false);
+      setShowPrivacyPolicy(false);
+      setSelectedUserId(null);
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   // Custom Alert Modal for Logout
   const [alertConfig, setAlertConfig] = useState<{
@@ -306,6 +332,10 @@ export const ProfileScreen: React.FC = () => {
     );
   }
 
+  if (selectedUserId) {
+    return <UserProfileScreen userId={selectedUserId} onBack={() => setSelectedUserId(null)} />;
+  }
+
   if (showPrivacyPolicy) {
     return <PrivacyPolicyScreen onBack={() => setShowPrivacyPolicy(false)} />;
   }
@@ -437,20 +467,37 @@ export const ProfileScreen: React.FC = () => {
 
               <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
 
-              <View style={styles.statItem}>
-                <Text style={[styles.statNumber, { color: colors.accent }]}>
-                  {profileData?.stats?.completed_prayers_today ?? 0}/5
+              <TouchableOpacity
+                style={styles.statItem}
+                onPress={() => setUserListModalConfig({ visible: true, tab: 'followers' })}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.statNumber, { color: colors.primary }]}>
+                  {profileData?.stats?.followers_count ?? 0}
                 </Text>
-                <Text style={[styles.statLabel, { color: colors.textMuted }]}>Sholat Hari Ini</Text>
-              </View>
+                <Text style={[styles.statLabel, { color: colors.textMuted }]}>Pengikut</Text>
+              </TouchableOpacity>
+
+              <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+
+              <TouchableOpacity
+                style={styles.statItem}
+                onPress={() => setUserListModalConfig({ visible: true, tab: 'following' })}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.statNumber, { color: colors.primary }]}>
+                  {profileData?.stats?.following_count ?? 0}
+                </Text>
+                <Text style={[styles.statLabel, { color: colors.textMuted }]}>Mengikuti</Text>
+              </TouchableOpacity>
 
               <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
 
               <View style={styles.statItem}>
-                <Text style={[styles.statNumber, { color: colors.primary }]}>
-                  {profileData?.stats?.saved_masjids_count ?? 0}
+                <Text style={[styles.statNumber, { color: colors.accent }]}>
+                  {profileData?.stats?.completed_prayers_today ?? 0}/5
                 </Text>
-                <Text style={[styles.statLabel, { color: colors.textMuted }]}>Masjid Favorit</Text>
+                <Text style={[styles.statLabel, { color: colors.textMuted }]}>Sholat</Text>
               </View>
             </View>
           </Card>
@@ -517,7 +564,7 @@ export const ProfileScreen: React.FC = () => {
                   <Bell color="#6D28D9" size={20} />
                 </View>
                 <View style={styles.menuTextGroup}>
-                  <Text style={[styles.menuTitle, { color: colors.text }]}>Notifikasi Menerus di Bilah HP</Text>
+                  <Text style={[styles.menuTitle, { color: colors.text }]}>Notifikasi Menerus</Text>
                   <Text style={[styles.menuSub, { color: colors.textMuted }]}>
                     Infobar sholat terpajang terus (tidak bisa dihapus)
                   </Text>
@@ -744,6 +791,18 @@ export const ProfileScreen: React.FC = () => {
         onConfirm={executeLogout}
         onClose={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
       />
+
+      {/* UserListModal for Followers / Following */}
+      {!!currentUser && (
+        <UserListModal
+          visible={userListModalConfig.visible}
+          initialTab={userListModalConfig.tab}
+          userId={currentUser.id}
+          userName={profileData?.user?.name || currentUser.name}
+          onClose={() => setUserListModalConfig((prev) => ({ ...prev, visible: false }))}
+          onSelectUser={(selectedId) => setSelectedUserId(selectedId)}
+        />
+      )}
 
       {/* Full-Screen Avatar Image Viewer */}
       <ImageViewerModal

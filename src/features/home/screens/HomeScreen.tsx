@@ -27,18 +27,28 @@ import { useGuestGuard } from '../../../hooks/useGuestGuard';
 import { apiClient } from '../../../api/apiClient';
 import { ENDPOINTS } from '../../../api/endpoints';
 import { Post } from '../../../types';
-import { Plus, X, Send, CornerDownRight, Search, Zap, Flame, Image as ImageIcon, MessageCircle, Tag, Bookmark, Heart } from 'lucide-react-native';
+import { Plus, X, Send, CornerDownRight, Search, Zap, Flame, Image as ImageIcon, MessageCircle, Tag, Bookmark, Heart, Users } from 'lucide-react-native';
 import { UserProfileScreen } from '../../profile/screens/UserProfileScreen';
 import { useCategories } from '../../../hooks/useCategories';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { formatRelativeTime } from '../../../utils/dateFormatter';
 
-export const HomeScreen: React.FC = () => {
+export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const { colors, isDarkMode } = useThemeStore();
   const { guardAction, requestRegister } = useGuestGuard();
   const [isGuestModalOpen, setIsGuestModalOpen] = useState<boolean>(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedPostForDetail, setSelectedPostForDetail] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (!navigation) return;
+    const unsubscribe = navigation.addListener('tabPress', () => {
+      setSelectedPostForDetail(null);
+      setSelectedUserId(null);
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   // Full-screen Image Viewer State
   const [imageViewerConfig, setImageViewerConfig] = useState<{
@@ -54,7 +64,7 @@ export const HomeScreen: React.FC = () => {
   // Categories from DB (cached in AsyncStorage)
   const { categories, loading: categoriesLoading } = useCategories();
 
-  const [activeTab, setActiveTab] = useState<'feed' | 'bookmarks' | 'liked'>('feed');
+  const [activeTab, setActiveTab] = useState<'following' | 'feed' | 'bookmarks' | 'liked'>('following');
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [page, setPage] = useState<number>(0);
@@ -132,6 +142,7 @@ export const HomeScreen: React.FC = () => {
 
       const categoryParam = selectedCategoryFilters.length > 0 ? selectedCategoryFilters.join(',') : 'semua';
       const sortParam = sortFilters.length > 0 ? sortFilters.join(',') : 'terbaru';
+      const isFollowingOnly = activeTab === 'following';
 
       const res = await apiClient.get(url, {
         params: {
@@ -142,6 +153,7 @@ export const HomeScreen: React.FC = () => {
           media: mediaFilter,
           search: searchQuery.trim(),
           category: categoryParam,
+          following: isFollowingOnly ? 'true' : 'false',
         },
       });
 
@@ -164,9 +176,12 @@ export const HomeScreen: React.FC = () => {
     }
   };
 
+  const flatListRef = React.useRef<FlatList>(null);
+
   useEffect(() => {
     setPage(0);
     setHasMore(true);
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     fetchPostsData(0, true);
   }, [activeTab, sortFilters, mediaFilter, searchQuery, selectedCategoryFilters]);
 
@@ -332,18 +347,9 @@ export const HomeScreen: React.FC = () => {
     }
   };
 
-  // Open Comments
-  const handleOpenComments = async (post: Post) => {
-    setSelectedPostForComment(post);
-    setReplyToComment(null);
-    try {
-      const res = await apiClient.get(ENDPOINTS.POSTS.COMMENTS(post.id));
-      setCommentsList(res.data?.data || []);
-    } catch (error) {
-      setCommentsList([
-        { id: '1', user_name: 'Siti Nurhaliza', content: 'MasyaAllah barakallah 🤲', created_at: '5m' },
-      ]);
-    }
+  // Open Comments (Navigate directly to Detail Feed)
+  const handleOpenComments = (post: Post) => {
+    setSelectedPostForDetail(post);
   };
 
   // Add Comment with Automatic DB Refresh & Instant Feed Sync
@@ -405,8 +411,13 @@ export const HomeScreen: React.FC = () => {
           post={selectedPostForDetail}
           onBack={() => setSelectedPostForDetail(null)}
           onPressAuthor={(userId) => {
-            setSelectedPostForDetail(null);
-            setSelectedUserId(userId);
+            guardAction(
+              () => {
+                setSelectedPostForDetail(null);
+                setSelectedUserId(userId);
+              },
+              () => setIsGuestModalOpen(true)
+            )();
           }}
           onPressImage={(urls, index) =>
             setImageViewerConfig({ visible: true, urls, index })
@@ -440,56 +451,78 @@ export const HomeScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Navigation Tabs */}
-      <View style={[styles.tabContainer, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'feed' && { borderBottomColor: colors.primary }]}
-          onPress={() => setActiveTab('feed')}
+      {/* Navigation Tabs (Horizontal Scrollable) */}
+      <View style={[styles.tabContainerWrapper, { borderBottomColor: colors.border }]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabScrollContent}
         >
-          <Text style={[styles.tabText, { color: colors.textMuted }, activeTab === 'feed' && { color: colors.primary, fontWeight: 'bold' }]}>
-            Semua Post
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'bookmarks' && { borderBottomColor: colors.primary }]}
-          onPress={() => setActiveTab('bookmarks')}
-        >
-          <Bookmark color={activeTab === 'bookmarks' ? colors.primary : colors.textMuted} size={15} />
-          <Text
-            style={[
-              styles.tabText,
-              { marginLeft: 4, color: colors.textMuted },
-              activeTab === 'bookmarks' && { color: colors.primary, fontWeight: 'bold' },
-            ]}
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'following' && { borderBottomColor: colors.primary }]}
+            onPress={() => setActiveTab('following')}
           >
-            Tersimpan
-          </Text>
-        </TouchableOpacity>
+            <Users color={activeTab === 'following' ? colors.primary : colors.textMuted} size={15} />
+            <Text
+              style={[
+                styles.tabText,
+                { marginLeft: 4, color: colors.textMuted },
+                activeTab === 'following' && { color: colors.primary, fontWeight: 'bold' },
+              ]}
+            >
+              Mengikuti
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'liked' && { borderBottomColor: colors.primary }]}
-          onPress={() => setActiveTab('liked')}
-        >
-          <Heart
-            color={activeTab === 'liked' ? colors.error : colors.textMuted}
-            fill={activeTab === 'liked' ? colors.error : 'transparent'}
-            size={15}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              { marginLeft: 4, color: colors.textMuted },
-              activeTab === 'liked' && { color: colors.error, fontWeight: 'bold' },
-            ]}
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'feed' && { borderBottomColor: colors.primary }]}
+            onPress={() => setActiveTab('feed')}
           >
-            Disukai
-          </Text>
-        </TouchableOpacity>
+            <Text style={[styles.tabText, { color: colors.textMuted }, activeTab === 'feed' && { color: colors.primary, fontWeight: 'bold' }]}>
+              Semua Post
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'bookmarks' && { borderBottomColor: colors.primary }]}
+            onPress={() => setActiveTab('bookmarks')}
+          >
+            <Bookmark color={activeTab === 'bookmarks' ? colors.primary : colors.textMuted} size={15} />
+            <Text
+              style={[
+                styles.tabText,
+                { marginLeft: 4, color: colors.textMuted },
+                activeTab === 'bookmarks' && { color: colors.primary, fontWeight: 'bold' },
+              ]}
+            >
+              Tersimpan
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'liked' && { borderBottomColor: colors.primary }]}
+            onPress={() => setActiveTab('liked')}
+          >
+            <Heart
+              color={activeTab === 'liked' ? colors.error : colors.textMuted}
+              fill={activeTab === 'liked' ? colors.error : 'transparent'}
+              size={15}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                { marginLeft: 4, color: colors.textMuted },
+                activeTab === 'liked' && { color: colors.error, fontWeight: 'bold' },
+              ]}
+            >
+              Suka
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       {/* Search & Filter Bar */}
-      {activeTab === 'feed' && (
+      {(activeTab === 'feed' || activeTab === 'following') && (
         <View style={styles.filterSection}>
           {/* Search Input Box */}
           <View style={[styles.searchWrapper, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -624,26 +657,33 @@ export const HomeScreen: React.FC = () => {
         <View style={styles.emptyContainer}>
           {activeTab === 'liked' ? (
             <Heart color={colors.textMuted} size={48} />
+          ) : activeTab === 'following' ? (
+            <Users color={colors.textMuted} size={48} />
           ) : (
             <Bookmark color={colors.textMuted} size={48} />
           )}
           <Text style={[styles.emptyTitle, { color: colors.text }]}>
-            {activeTab === 'bookmarks'
-              ? 'Belum Ada Post Tersimpan'
-              : activeTab === 'liked'
-                ? 'Belum Ada Post Disukai'
-                : 'Belum Ada Postingan'}
+            {activeTab === 'following'
+              ? 'Belum Ada Post dari Akun Diikuti'
+              : activeTab === 'bookmarks'
+                ? 'Belum Ada Post Tersimpan'
+                : activeTab === 'liked'
+                  ? 'Belum Ada Post Disukai'
+                  : 'Belum Ada Postingan'}
           </Text>
           <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
-            {activeTab === 'bookmarks'
-              ? 'Tekan ikon bookmark pada postingan untuk menyimpannya di sini.'
-              : activeTab === 'liked'
-                ? 'Tekan ikon menyukai (hati) pada postingan untuk melihatnya di sini.'
-                : 'Jadilah yang pertama membuat postingan hari ini!'}
+            {activeTab === 'following'
+              ? 'Ikuti pengguna lain untuk melihat postingan terbaru mereka di sini.'
+              : activeTab === 'bookmarks'
+                ? 'Tekan ikon bookmark pada postingan untuk menyimpannya di sini.'
+                : activeTab === 'liked'
+                  ? 'Tekan ikon menyukai (hati) pada postingan untuk melihatnya di sini.'
+                  : 'Jadilah yang pertama membuat postingan hari ini!'}
           </Text>
         </View>
       ) : (
         <FlatList
+          ref={flatListRef}
           data={posts}
           keyExtractor={(item) => item.id}
           onRefresh={handleRefresh}
@@ -662,7 +702,12 @@ export const HomeScreen: React.FC = () => {
           renderItem={({ item }) => (
             <PostCard
               item={item}
-              onPressAuthor={(userId) => setSelectedUserId(userId)}
+              onPressAuthor={(userId) =>
+                guardAction(
+                  () => setSelectedUserId(userId),
+                  () => setIsGuestModalOpen(true)
+                )()
+              }
               onPressPost={(postItem) => setSelectedPostForDetail(postItem)}
               onPressImage={(urls, index) =>
                 setImageViewerConfig({ visible: true, urls, index })
@@ -941,10 +986,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 4,
   },
-  tabContainer: {
-    flexDirection: 'row',
+  tabContainerWrapper: {
     borderBottomWidth: 1,
     marginBottom: SPACING.md,
+  },
+  tabScrollContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: SPACING.md,
   },
   tabButton: {
     flexDirection: 'row',

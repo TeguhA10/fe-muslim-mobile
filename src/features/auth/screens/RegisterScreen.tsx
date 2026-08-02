@@ -22,6 +22,28 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateLogin,
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  const [nameTouched, setNameTouched] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
+
+  const nameError = nameTouched && name.trim().length > 0 && name.trim().length < 3
+    ? 'Nama lengkap minimal 3 karakter'
+    : '';
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailError = emailTouched && email.trim().length > 0 && !emailRegex.test(email.trim())
+    ? 'Format email tidak valid (contoh: nama@email.com)'
+    : '';
+
+  const passwordError = passwordTouched && password.length > 0 && password.length < 6
+    ? 'Kata sandi minimal 6 karakter'
+    : '';
+
+  const confirmPasswordError = confirmPasswordTouched && confirmPassword.length > 0 && confirmPassword !== password
+    ? 'Konfirmasi kata sandi tidak cocok'
+    : '';
   const [loading, setLoading] = useState(false);
 
   const { login } = useAuthStore();
@@ -105,7 +127,11 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateLogin,
             label="Nama Lengkap"
             placeholder="Ahmad Hidayat"
             value={name}
-            onChangeText={setName}
+            onChangeText={(val) => {
+              setName(val);
+              setNameTouched(true);
+            }}
+            error={nameError}
             icon={<UserIcon color={colors.textMuted} size={20} />}
           />
 
@@ -113,9 +139,13 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateLogin,
             label="Alamat Email"
             placeholder="nama@email.com"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(val) => {
+              setEmail(val);
+              setEmailTouched(true);
+            }}
             keyboardType="email-address"
             autoCapitalize="none"
+            error={emailError}
             icon={<Mail color={colors.textMuted} size={20} />}
           />
 
@@ -123,8 +153,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateLogin,
             label="Kata Sandi"
             placeholder="••••••••"
             value={password}
-            onChangeText={setPassword}
-            secureTextEntry
+            onChangeText={(val) => {
+              setPassword(val);
+              setPasswordTouched(true);
+            }}
+            isPassword={true}
+            error={passwordError}
             icon={<Lock color={colors.textMuted} size={20} />}
           />
 
@@ -132,8 +166,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateLogin,
             label="Konfirmasi Kata Sandi"
             placeholder="••••••••"
             value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
+            onChangeText={(val) => {
+              setConfirmPassword(val);
+              setConfirmPasswordTouched(true);
+            }}
+            isPassword={true}
+            error={confirmPasswordError}
             icon={<Lock color={colors.textMuted} size={20} />}
           />
 

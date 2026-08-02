@@ -28,6 +28,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailError = emailTouched && email.trim().length > 0 && !emailRegex.test(email.trim())
+    ? 'Format email tidak valid (contoh: nama@email.com)'
+    : '';
+
+  const passwordError = passwordTouched && password.length > 0 && password.length < 6
+    ? 'Kata sandi minimal 6 karakter'
+    : '';
   const [loading, setLoading] = useState(false);
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
 
@@ -123,9 +134,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             label="Alamat Email"
             placeholder="nama@email.com"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(val) => {
+              setEmail(val);
+              setEmailTouched(true);
+            }}
             keyboardType="email-address"
             autoCapitalize="none"
+            error={emailError}
             icon={<Mail color={colors.textMuted} size={20} />}
           />
 
@@ -133,8 +148,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             label="Kata Sandi"
             placeholder="••••••••"
             value={password}
-            onChangeText={setPassword}
-            secureTextEntry
+            onChangeText={(val) => {
+              setPassword(val);
+              setPasswordTouched(true);
+            }}
+            isPassword={true}
+            error={passwordError}
             icon={<Lock color={colors.textMuted} size={20} />}
           />
 

@@ -45,6 +45,17 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({ onBa
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const [newPasswordTouched, setNewPasswordTouched] = useState(false);
+  const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
+
+  const newPasswordError = newPasswordTouched && newPassword.length > 0 && newPassword.length < 6
+    ? 'Kata sandi baru minimal 6 karakter'
+    : '';
+
+  const confirmPasswordError = confirmPasswordTouched && confirmPassword.length > 0 && confirmPassword !== newPassword
+    ? 'Konfirmasi kata sandi baru tidak cocok'
+    : '';
+
   const [loading, setLoading] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
   const [otpSentMessage, setOtpSentMessage] = useState<string | null>(null);
@@ -274,7 +285,10 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({ onBa
                 placeholderTextColor={colors.textMuted}
                 secureTextEntry={!showNewPassword}
                 value={newPassword}
-                onChangeText={setNewPassword}
+                onChangeText={(val) => {
+                  setNewPassword(val);
+                  setNewPasswordTouched(true);
+                }}
               />
               <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)}>
                 {showNewPassword ? (
@@ -284,6 +298,11 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({ onBa
                 )}
               </TouchableOpacity>
             </View>
+            {!!newPasswordError && (
+              <Text style={{ fontSize: 12, color: colors.error, marginTop: 4 }}>
+                {newPasswordError}
+              </Text>
+            )}
           </View>
 
           {/* Confirm New Password Input */}
@@ -292,7 +311,7 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({ onBa
             <View
               style={[
                 styles.inputContainer,
-                { backgroundColor: colors.background, borderColor: colors.border },
+                { backgroundColor: colors.background, borderColor: confirmPasswordError ? colors.error : colors.border },
               ]}
             >
               <CheckCircle2
@@ -309,7 +328,10 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({ onBa
                 placeholderTextColor={colors.textMuted}
                 secureTextEntry={!showConfirmPassword}
                 value={confirmPassword}
-                onChangeText={setConfirmPassword}
+                onChangeText={(val) => {
+                  setConfirmPassword(val);
+                  setConfirmPasswordTouched(true);
+                }}
               />
               <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
                 {showConfirmPassword ? (
@@ -319,6 +341,11 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({ onBa
                 )}
               </TouchableOpacity>
             </View>
+            {!!confirmPasswordError && (
+              <Text style={{ fontSize: 12, color: colors.error, marginTop: 4 }}>
+                {confirmPasswordError}
+              </Text>
+            )}
           </View>
 
           {/* Guidelines Box */}

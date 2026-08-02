@@ -14,6 +14,9 @@ export const ENDPOINTS = {
     CHANGE_PASSWORD_REQUEST_OTP: '/auth/change-password-request-otp',
     AVATAR: '/auth/avatar',
     PUBLIC_PROFILE: (id: string) => `/auth/user/${id}`,
+    FOLLOW: (id: string) => `/auth/user/${id}/follow`,
+    FOLLOWERS: (id: string) => `/auth/user/${id}/followers`,
+    FOLLOWING: (id: string) => `/auth/user/${id}/following`,
   },
   PRAYER: {
     TIMES: '/prayer/times',

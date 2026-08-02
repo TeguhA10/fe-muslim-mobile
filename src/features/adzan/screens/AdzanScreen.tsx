@@ -21,7 +21,7 @@ interface DayItem {
   isToday: boolean;
 }
 
-export const AdzanScreen: React.FC = () => {
+export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const { city, latitude, longitude } = useLocationStore();
   const { colors, isDarkMode } = useThemeStore();
   const {
@@ -35,6 +35,19 @@ export const AdzanScreen: React.FC = () => {
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [isOffsetModalOpen, setIsOffsetModalOpen] = useState(false);
+
+  const scrollViewRef = React.useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (!navigation) return;
+    const unsubscribe = navigation.addListener('tabPress', () => {
+      setIsLocationModalOpen(false);
+      setIsGuestModalOpen(false);
+      setIsOffsetModalOpen(false);
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const getTodayDateStr = () => new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDateStr());
@@ -186,7 +199,7 @@ export const AdzanScreen: React.FC = () => {
         });
         setHistoryStats(statsMap);
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   // Fetch real prayer times & database prayer logs for selectedDate
@@ -218,7 +231,7 @@ export const AdzanScreen: React.FC = () => {
           { name: 'Isya', time: timings.Isha || '19:12', active: false, completed: completedMap.has('isya') },
         ]);
       }
-    } catch (err) {}
+    } catch (err) { }
   };
 
   useEffect(() => {
@@ -253,7 +266,7 @@ export const AdzanScreen: React.FC = () => {
 
   return (
     <ScreenWrapper style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false}>
         {/* Banner Next Prayer */}
         <Card style={[styles.nextPrayerBanner, { backgroundColor: colors.primaryDark }]}>
           {/* Location & Reminder Settings Responsive Chips Row */}
@@ -409,7 +422,7 @@ export const AdzanScreen: React.FC = () => {
 
           <View style={styles.settingRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={[styles.settingTitle, { color: colors.text }]}>Notifikasi Menerus di Bilah HP (Ongoing / Sticky)</Text>
+              <Text style={[styles.settingTitle, { color: colors.text }]}>Notifikasi Menerus (Ongoing / Sticky)</Text>
               <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
                 Pengingat terpajang terus di status bar HP (tidak bisa di-swipe hapus)
               </Text>

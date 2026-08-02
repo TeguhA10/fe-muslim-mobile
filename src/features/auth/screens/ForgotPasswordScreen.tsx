@@ -20,6 +20,17 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ onNa
   const [email, setEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [newPasswordTouched, setNewPasswordTouched] = useState(false);
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailError = emailTouched && email.trim().length > 0 && !emailRegex.test(email.trim())
+    ? 'Format email tidak valid (contoh: nama@email.com)'
+    : '';
+
+  const newPasswordError = newPasswordTouched && newPassword.length > 0 && newPassword.length < 6
+    ? 'Kata sandi baru minimal 6 karakter'
+    : '';
   const [loading, setLoading] = useState(false);
   const [otpExpiresAt, setOtpExpiresAt] = useState<string | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
@@ -153,9 +164,13 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ onNa
                 label="Alamat Email Terdaftar"
                 placeholder="nama@email.com"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(val) => {
+                  setEmail(val);
+                  setEmailTouched(true);
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                error={emailError}
                 icon={<Mail color={colors.textMuted} size={20} />}
               />
 
@@ -190,8 +205,12 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ onNa
                 label="Kata Sandi Baru"
                 placeholder="••••••••"
                 value={newPassword}
-                onChangeText={setNewPassword}
-                secureTextEntry
+                onChangeText={(val) => {
+                  setNewPassword(val);
+                  setNewPasswordTouched(true);
+                }}
+                isPassword={true}
+                error={newPasswordError}
                 icon={<Lock color={colors.textMuted} size={20} />}
               />
 

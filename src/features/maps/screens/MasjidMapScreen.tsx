@@ -36,7 +36,7 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 
-export const MasjidMapScreen: React.FC = () => {
+export const MasjidMapScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const { city, latitude: userLat, longitude: userLng } = useLocationStore();
   const { colors, isDarkMode } = useThemeStore();
   const { guardAction, isGuest, isAuthenticated, requestRegister } = useGuestGuard();
@@ -52,6 +52,18 @@ export const MasjidMapScreen: React.FC = () => {
 
   // Selected Mosque for Route Navigation Modal
   const [selectedRouteMosque, setSelectedRouteMosque] = useState<Masjid | null>(null);
+
+  useEffect(() => {
+    if (!navigation) return;
+    const unsubscribe = navigation.addListener('tabPress', () => {
+      setSelectedDetailMasjid(null);
+      setSelectedRouteMosque(null);
+      setIsLocationModalOpen(false);
+      setIsGuestModalOpen(false);
+      setActiveTab('nearby');
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   // Custom Alert State
   const [alertConfig, setAlertConfig] = useState<{

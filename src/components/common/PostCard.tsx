@@ -7,7 +7,7 @@ import {
   Image,
   Share,
 } from 'react-native';
-import { Heart, MessageSquare, Share2, Bookmark, Tag } from 'lucide-react-native';
+import { Heart, MessageSquare, Share2, Bookmark, Tag, Trash2 } from 'lucide-react-native';
 import { Card } from './Card';
 import { useThemeStore } from '../../store/useThemeStore';
 import { SPACING } from '../../constants/theme';
@@ -49,6 +49,8 @@ export interface PostCardProps {
   onComment: (item: PostCardItem) => void;
   /** Dipanggil saat klik tombol Bookmark */
   onBookmark: (postId: string) => void;
+  /** Dipanggil saat klik tombol Hapus */
+  onDelete?: (postId: string) => void;
   /** Override style container card */
   style?: object;
 }
@@ -66,6 +68,7 @@ export const PostCard: React.FC<PostCardProps> = ({
   onLike,
   onComment,
   onBookmark,
+  onDelete,
   style,
 }) => {
   const { colors, isDarkMode } = useThemeStore();
@@ -150,18 +153,30 @@ export const PostCard: React.FC<PostCardProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Bookmark di pojok kanan atas */}
-        <TouchableOpacity
-          style={styles.bookmarkBtn}
-          onPress={() => onBookmark(item.id)}
-          activeOpacity={0.7}
-        >
-          <Bookmark
-            color={item.is_bookmarked_by_me ? colors.accent : colors.textMuted}
-            fill={item.is_bookmarked_by_me ? colors.accent : 'transparent'}
-            size={22}
-          />
-        </TouchableOpacity>
+        {/* Action Right: Delete & Bookmark */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity
+            style={styles.bookmarkBtn}
+            onPress={() => onBookmark(item.id)}
+            activeOpacity={0.7}
+          >
+            <Bookmark
+              color={item.is_bookmarked_by_me ? colors.accent : colors.textMuted}
+              fill={item.is_bookmarked_by_me ? colors.accent : 'transparent'}
+              size={22}
+            />
+          </TouchableOpacity>
+
+          {!!onDelete && (
+            <TouchableOpacity
+              style={styles.bookmarkBtn}
+              onPress={() => onDelete(item.id)}
+              activeOpacity={0.7}
+            >
+              <Trash2 color="#DC2626" size={20} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* ── Konten teks ── */}

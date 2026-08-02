@@ -10,14 +10,19 @@ import {
   Modal,
   TextInput,
   FlatList,
+  Share,
 } from 'react-native';
 import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
 import { Card } from '../../../components/common/Card';
 import { PostCard } from '../../../components/common/PostCard';
 import { ImageViewerModal } from '../../../components/common/ImageViewerModal';
+import { UserListModal } from '../../../components/common/UserListModal';
+import { GuestGuardModal } from '../../../components/common/GuestGuardModal';
 import { PostDetailScreen } from '../../home/screens/PostDetailScreen';
 import { SPACING } from '../../../constants/theme';
 import { useThemeStore } from '../../../store/useThemeStore';
+import { useAuthStore } from '../../../store/useAuthStore';
+import { useGuestGuard } from '../../../hooks/useGuestGuard';
 import { apiClient } from '../../../api/apiClient';
 import { ENDPOINTS } from '../../../api/endpoints';
 import {
@@ -28,6 +33,9 @@ import {
   Award,
   Send,
   X,
+  UserCheck,
+  UserPlus,
+  Share2,
   CornerDownRight,
 } from 'lucide-react-native';
 import { formatRelativeTime } from '../../../utils/dateFormatter';
@@ -40,6 +48,7 @@ interface PublicUserProfile {
   birth_date?: string;
   bio?: string;
   created_at: string;
+  is_following_by_me?: boolean;
 }
 
 interface UserPost {
@@ -74,11 +83,27 @@ interface UserProfileScreenProps {
 
 export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userId, onBack }) => {
   const { colors, isDarkMode } = useThemeStore();
+  const { user: currentUser } = useAuthStore();
+  const { guardAction, requestRegister } = useGuestGuard();
+  const [isGuestModalOpen, setIsGuestModalOpen] = useState<boolean>(false);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [profile, setProfile] = useState<PublicUserProfile | null>(null);
   const [postsCount, setPostsCount] = useState<number>(0);
+  const [followersCount, setFollowersCount] = useState<number>(0);
+  const [followingCount, setFollowingCount] = useState<number>(0);
+  const [isFollowing, setIsFollowing] = useState<boolean>(false);
+  const [followLoading, setFollowLoading] = useState<boolean>(false);
   const [posts, setPosts] = useState<UserPost[]>([]);
+
+  // UserListModal state (Instagram followers/following list)
+  const [userListModalConfig, setUserListModalConfig] = useState<{
+    visible: boolean;
+    tab: 'followers' | 'following';
+  }>({
+    visible: false,
+    tab: 'followers',
+  });
 
   // Comments Modal state
   const [selectedPostForComment, setSelectedPostForComment] = useState<UserPost | null>(null);
@@ -97,27 +122,72 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userId, on
   const [replyToComment, setReplyToComment] = useState<{ id: string; user_name?: string } | null>(null);
   const [viewAvatarModal, setViewAvatarModal] = useState<boolean>(false);
 
-  useEffect(() => {
-    const fetchPublicProfile = async () => {
-      try {
-        setLoading(true);
-        const res = await apiClient.get(ENDPOINTS.AUTH.PUBLIC_PROFILE(userId));
-        if (res.data?.data) {
-          setProfile(res.data.data.user);
-          setPostsCount(res.data.data.stats?.posts_count || 0);
-          setPosts(res.data.data.posts || []);
-        }
-      } catch (error: any) {
-        console.log('[UserProfile] Error fetching public profile:', error?.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const [targetUserId, setTargetUserId] = useState<string>(userId);
 
-    if (userId) {
-      fetchPublicProfile();
-    }
+  useEffect(() => {
+    setTargetUserId(userId);
   }, [userId]);
+
+  useEffect(() => {
+    fetchPublicProfile(targetUserId);
+  }, [targetUserId]);
+
+  const fetchPublicProfile = async (idToFetch = targetUserId) => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get(ENDPOINTS.AUTH.PUBLIC_PROFILE(idToFetch));
+      if (res.data?.data) {
+        const uData = res.data.data.user;
+        const statsData = res.data.data.stats;
+
+        setProfile(uData);
+        setIsFollowing(!!uData?.is_following_by_me);
+        setPostsCount(statsData?.posts_count || 0);
+        setFollowersCount(statsData?.followers_count || 0);
+        setFollowingCount(statsData?.following_count || 0);
+        setPosts(res.data.data.posts || []);
+      }
+    } catch (error: any) {
+      console.log('[UserProfile] Error fetching public profile:', error?.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleFollow = async () => {
+    if (!currentUser || !profile || currentUser.id === profile.id) return;
+
+    setFollowLoading(true);
+    const prevFollowing = isFollowing;
+    const prevFollowersCount = followersCount;
+
+    // Optimistic Update
+    setIsFollowing(!prevFollowing);
+    setFollowersCount(prevFollowing ? Math.max(0, prevFollowersCount - 1) : prevFollowersCount + 1);
+
+    try {
+      const res = await apiClient.post(ENDPOINTS.AUTH.FOLLOW(profile.id));
+      if (res.data?.data) {
+        setIsFollowing(res.data.data.is_following);
+        setFollowersCount(res.data.data.followers_count);
+      }
+    } catch (error) {
+      // Revert if error
+      setIsFollowing(prevFollowing);
+      setFollowersCount(prevFollowersCount);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleShareProfile = async () => {
+    if (!profile) return;
+    try {
+      await Share.share({
+        message: `Lihat profil ${profile.name} di Aplikasi Muslim!`,
+      });
+    } catch (e) {}
+  };
 
   const handleToggleLike = async (postId: string) => {
     setPosts((prevPosts) =>
@@ -170,17 +240,6 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userId, on
           post.id === postId ? { ...post, is_bookmarked_by_me: prevBookmarked } : post
         )
       );
-    }
-  };
-
-  const handleOpenComments = async (post: UserPost) => {
-    setSelectedPostForComment(post);
-    setReplyToComment(null);
-    try {
-      const res = await apiClient.get(ENDPOINTS.POSTS.COMMENTS(post.id));
-      setCommentsList(res.data?.data || []);
-    } catch (error) {
-      setCommentsList([]);
     }
   };
 
@@ -251,6 +310,8 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userId, on
     );
   }
 
+  const isMe = currentUser?.id === profile?.id;
+
   return (
     <ScreenWrapper style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header Bar */}
@@ -258,7 +319,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userId, on
         <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.7}>
           <ArrowLeft color={colors.text} size={22} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Profil Pengguna</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{profile?.name || 'Profil Pengguna'}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -273,9 +334,11 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userId, on
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* User Hero Profile Card */}
+          {/* Instagram-Style Hero Profile Card */}
           <Card style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={styles.avatarWrapper}>
+            {/* Instagram Header Grid: Avatar on Left, Stats on Right */}
+            <View style={styles.igHeaderGrid}>
+              {/* Avatar Ring */}
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={() => {
@@ -294,37 +357,103 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userId, on
                   )}
                 </View>
               </TouchableOpacity>
-            </View>
 
-            <View style={styles.nameRow}>
-              <Text style={[styles.userName, { color: colors.text }]}>{profile.name}</Text>
-              <Award color={colors.accent} size={18} />
-            </View>
+              {/* Instagram Stats Row */}
+              <View style={styles.igStatsRow}>
+                <View style={styles.igStatItem}>
+                  <Text style={[styles.igStatValue, { color: colors.text }]}>{postsCount}</Text>
+                  <Text style={[styles.igStatLabel, { color: colors.textMuted }]}>Postingan</Text>
+                </View>
 
-            {!!profile.bio && (
-              <Text style={[styles.userBio, { color: colors.text }]}>"{profile.bio}"</Text>
-            )}
+                <TouchableOpacity
+                  style={styles.igStatItem}
+                  activeOpacity={0.7}
+                  onPress={guardAction(
+                    () => setUserListModalConfig({ visible: true, tab: 'followers' }),
+                    () => setIsGuestModalOpen(true)
+                  )}
+                >
+                  <Text style={[styles.igStatValue, { color: colors.text }]}>{followersCount}</Text>
+                  <Text style={[styles.igStatLabel, { color: colors.textMuted }]}>Pengikut</Text>
+                </TouchableOpacity>
 
-            {!!(profile.gender || profile.birth_date) && (
-              <Text style={[styles.userMeta, { color: colors.textMuted }]}>
-                {profile.gender ? `👤 ${profile.gender}` : ''}
-                {profile.gender && profile.birth_date ? ' • ' : ''}
-                {profile.birth_date ? `🎂 ${profile.birth_date}` : ''}
-              </Text>
-            )}
-
-            <View style={[styles.badgeTag, { backgroundColor: isDarkMode ? '#065F46' : '#D1E7DD' }]}>
-              <Sparkles color={colors.primary} size={13} />
-              <Text style={[styles.badgeText, { color: colors.primary }]}>Anggota Sejak {formattedJoinDate()}</Text>
-            </View>
-
-            {/* Stats Row */}
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: colors.primary }]}>{postsCount}</Text>
-                <Text style={[styles.statLabel, { color: colors.textMuted }]}>Postingan</Text>
+                <TouchableOpacity
+                  style={styles.igStatItem}
+                  activeOpacity={0.7}
+                  onPress={guardAction(
+                    () => setUserListModalConfig({ visible: true, tab: 'following' }),
+                    () => setIsGuestModalOpen(true)
+                  )}
+                >
+                  <Text style={[styles.igStatValue, { color: colors.text }]}>{followingCount}</Text>
+                  <Text style={[styles.igStatLabel, { color: colors.textMuted }]}>Mengikuti</Text>
+                </TouchableOpacity>
               </View>
             </View>
+
+            {/* Name & Bio Section */}
+            <View style={styles.infoSection}>
+              <View style={styles.nameRow}>
+                <Text style={[styles.userName, { color: colors.text }]}>{profile.name}</Text>
+                <Award color={colors.accent} size={18} style={{ marginLeft: 6 }} />
+              </View>
+
+              {!!profile.bio && (
+                <Text style={[styles.userBio, { color: colors.text }]}>{profile.bio}</Text>
+              )}
+
+              {!!(profile.gender || profile.birth_date) && (
+                <Text style={[styles.userMeta, { color: colors.textMuted }]}>
+                  {profile.gender ? `👤 ${profile.gender}` : ''}
+                  {profile.gender && profile.birth_date ? ' • ' : ''}
+                  {profile.birth_date ? `🎂 ${profile.birth_date}` : ''}
+                </Text>
+              )}
+
+              <View style={[styles.badgeTag, { backgroundColor: isDarkMode ? '#065F46' : '#D1E7DD' }]}>
+                <Sparkles color={colors.primary} size={13} />
+                <Text style={[styles.badgeText, { color: colors.primary }]}>Anggota Sejak {formattedJoinDate()}</Text>
+              </View>
+            </View>
+
+            {/* Instagram Action Buttons Row */}
+            {!isMe && (
+              <View style={styles.actionButtonsRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.igMainBtn,
+                    isFollowing
+                      ? [styles.igFollowingBtn, { backgroundColor: isDarkMode ? '#334155' : '#E2E8F0' }]
+                      : [styles.igFollowBtn, { backgroundColor: colors.primary }],
+                  ]}
+                  onPress={handleToggleFollow}
+                  disabled={followLoading}
+                  activeOpacity={0.85}
+                >
+                  {followLoading ? (
+                    <ActivityIndicator size="small" color={isFollowing ? colors.text : '#FFFFFF'} />
+                  ) : isFollowing ? (
+                    <View style={styles.igBtnInner}>
+                      <UserCheck color={colors.text} size={16} style={{ marginRight: 6 }} />
+                      <Text style={[styles.igFollowingBtnText, { color: colors.text }]}>Mengikuti</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.igBtnInner}>
+                      <UserPlus color="#FFFFFF" size={16} style={{ marginRight: 6 }} />
+                      <Text style={styles.igFollowBtnText}>Ikuti</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.igSecondaryBtn, { backgroundColor: isDarkMode ? '#334155' : '#E2E8F0' }]}
+                  onPress={handleShareProfile}
+                  activeOpacity={0.85}
+                >
+                  <Share2 color={colors.text} size={16} />
+                </TouchableOpacity>
+              </View>
+            )}
           </Card>
 
           {/* Posts Header */}
@@ -358,12 +487,28 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userId, on
         </ScrollView>
       )}
 
+      {/* UserListModal for Followers / Following */}
+      {!!profile && (
+        <UserListModal
+          visible={userListModalConfig.visible}
+          initialTab={userListModalConfig.tab}
+          userId={profile.id}
+          userName={profile.name}
+          onClose={() => setUserListModalConfig((prev) => ({ ...prev, visible: false }))}
+          onSelectUser={(selectedUserId) => {
+            setUserListModalConfig((prev) => ({ ...prev, visible: false }));
+            setTargetUserId(selectedUserId);
+          }}
+        />
+      )}
+
       <ImageViewerModal
         visible={imageViewerConfig.visible}
         imageUrls={imageViewerConfig.urls}
         initialIndex={imageViewerConfig.index}
         onClose={() => setImageViewerConfig((prev) => ({ ...prev, visible: false }))}
       />
+
 
       {/* Modal Komentar */}
       <Modal visible={!!selectedPostForComment} animationType="slide" transparent>
@@ -462,6 +607,13 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userId, on
         imageUrls={profile?.avatar_url ? [profile.avatar_url] : []}
         onClose={() => setViewAvatarModal(false)}
       />
+
+      <GuestGuardModal
+        visible={isGuestModalOpen}
+        onClose={() => setIsGuestModalOpen(false)}
+        onNavigateRegister={requestRegister}
+        featureName="melihat detail profil pengguna lain"
+      />
     </ScreenWrapper>
   );
 };
@@ -503,55 +655,109 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   heroCard: {
-    alignItems: 'center',
-    paddingVertical: SPACING.xl,
-    borderRadius: 24,
+    padding: SPACING.md,
+    borderRadius: 20,
     marginBottom: SPACING.md,
+  },
+  igHeaderGrid: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  igStatsRow: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginLeft: SPACING.md,
+  },
+  igStatItem: {
+    alignItems: 'center',
+  },
+  igStatValue: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  igStatLabel: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  infoSection: {
+    marginTop: 4,
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    marginTop: SPACING.md,
+    gap: 8,
+  },
+  igMainBtn: {
+    flex: 1,
+    height: 38,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  igFollowBtn: {},
+  igFollowingBtn: {},
+  igBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  igFollowBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  igFollowingBtnText: {
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  igSecondaryBtn: {
+    width: 42,
+    height: 38,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarWrapper: {
     marginBottom: SPACING.sm,
   },
   avatarRing: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    borderWidth: 3,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2.5,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarBox: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarImage: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
   },
   avatarText: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: SPACING.xs,
   },
   userName: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginRight: 6,
   },
   userBio: {
     fontSize: 13,
-    fontStyle: 'italic',
     marginTop: 4,
-    textAlign: 'center',
-    paddingHorizontal: 16,
+    lineHeight: 18,
   },
   userMeta: {
     fontSize: 12,
@@ -560,14 +766,15 @@ const styles = StyleSheet.create({
   badgeTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
-    marginTop: 10,
+    marginTop: 8,
     gap: 6,
   },
   badgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   statsRow: {
