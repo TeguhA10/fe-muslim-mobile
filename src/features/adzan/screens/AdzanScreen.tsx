@@ -12,6 +12,7 @@ import { useGuestGuard } from '../../../hooks/useGuestGuard';
 import { apiClient } from '../../../api/apiClient';
 import { ENDPOINTS } from '../../../api/endpoints';
 import { NotificationService } from '../../../services/notification.service';
+import { PrayerBackgroundService } from '../../../services/prayerBackground.service';
 import { Clock, MapPin, Bell, CheckCircle2, Circle, ChevronRight, Calendar as CalendarIcon, X, Check } from 'lucide-react-native';
 
 interface DayItem {
@@ -76,6 +77,16 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   } | null>(null);
 
   const prayerTimingsKey = prayerTimes.map((p) => `${p.name}:${p.time}`).join('|');
+
+  // Sync active schedule with background prayer service
+  useEffect(() => {
+    if (prayerTimes && prayerTimes.length > 0) {
+      PrayerBackgroundService.updateSchedule(
+        prayerTimes.map((p) => ({ name: p.name, time: p.time })),
+        city
+      );
+    }
+  }, [prayerTimingsKey, city]);
 
   // Calculate Real-Time Next Prayer & Countdown based on Device Phone Clock & Timings
   useEffect(() => {

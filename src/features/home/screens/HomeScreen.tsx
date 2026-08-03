@@ -36,6 +36,7 @@ import { useNotificationStore } from '../../../store/useNotificationStore';
 import { NotificationService } from '../../../services/notification.service';
 import { socketService } from '../../../services/socket.service';
 import { formatRelativeTime } from '../../../utils/dateFormatter';
+import { usePostsCache } from '../../../hooks/usePostsCache';
 
 export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const { colors, isDarkMode } = useThemeStore();
@@ -46,6 +47,7 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const [showNotificationScreen, setShowNotificationScreen] = useState<boolean>(false);
   const { unreadCount, fetchUnreadCount } = useNotificationStore();
   const { isAuthenticated, user } = useAuthStore();
+  const { getCacheKey, getCachedPosts, savePostsToCache } = usePostsCache();
 
   useEffect(() => {
     if (isAuthenticated && user?.id) {
@@ -57,17 +59,6 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
       socketService.disconnect();
     }
   }, [isAuthenticated, user?.id]);
-
-  useEffect(() => {
-    if (!navigation) return;
-    const unsubscribe = navigation.addListener('tabPress', () => {
-      setSelectedPostForDetail(null);
-      setSelectedUserId(null);
-      setShowNotificationScreen(false);
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    });
-    return unsubscribe;
-  }, [navigation]);
 
   // Full-screen Image Viewer State
   const [imageViewerConfig, setImageViewerConfig] = useState<{
@@ -152,10 +143,18 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
     setAlertConfig((prev) => ({ ...prev, visible: false }));
   };
 
+  // Helper to generate current active feed cache key
+  const getCurrentCacheKey = () => {
+    const categoryParam = selectedCategoryFilters.length > 0 ? selectedCategoryFilters.join(',') : 'semua';
+    const sortParam = sortFilters.length > 0 ? sortFilters.join(',') : 'terbaru';
+    return getCacheKey(activeTab, categoryParam, sortParam, mediaFilter, debouncedSearchQuery);
+  };
+
   // Fetch Posts from Backend with Pagination (Infinity Scroll)
   const PAGE_SIZE = 10;
 
   const fetchPostsData = async (pageNum = 0, isRefresh = false) => {
+    const cacheKey = getCurrentCacheKey();
     try {
       if (isRefresh) {
         setRefreshing(true);
@@ -191,13 +190,25 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
       if (isRefresh || pageNum === 0) {
         setPosts(newPosts);
         setPage(0);
+        // Persist fresh posts to cache
+        savePostsToCache(cacheKey, newPosts);
       } else {
-        setPosts((prev) => [...prev, ...newPosts]);
+        setPosts((prev) => {
+          const updated = [...prev, ...newPosts];
+          savePostsToCache(cacheKey, updated);
+          return updated;
+        });
       }
 
       setHasMore(newPosts.length === PAGE_SIZE);
     } catch (error) {
-      console.log('[Feed] Error fetching posts, using local state');
+      console.log('[Feed] Error fetching posts, using local state or cache');
+      if (pageNum === 0) {
+        const cached = await getCachedPosts(cacheKey);
+        if (cached && cached.length > 0) {
+          setPosts(cached);
+        }
+      }
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -207,12 +218,67 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
 
   const flatListRef = React.useRef<FlatList>(null);
 
+  // TikTok-Style Feed Caching: Load cache first on tab/filter switch
   useEffect(() => {
+    let isCancelled = false;
     setPage(0);
     setHasMore(true);
     flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-    fetchPostsData(0, true);
+
+    const loadCacheThenFetch = async () => {
+      const cacheKey = getCurrentCacheKey();
+      const cached = await getCachedPosts(cacheKey);
+      if (isCancelled) return;
+
+      if (cached && cached.length > 0) {
+        setPosts(cached);
+        setLoading(false);
+      } else {
+        fetchPostsData(0, false);
+      }
+    };
+
+    loadCacheThenFetch();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [activeTab, sortFilters, mediaFilter, debouncedSearchQuery, selectedCategoryFilters]);
+
+  // Listen to Bottom Tab Home press: ONLY refresh if user is ALREADY on the Home tab and taps it again
+  useEffect(() => {
+    if (!navigation) return;
+    const unsubscribe = navigation.addListener('tabPress', () => {
+      const isFocused = navigation.isFocused();
+
+      // If user is just switching from another tab to Home -> DO NOT refresh data
+      if (!isFocused) {
+        return;
+      }
+
+      // User is ALREADY on Home tab and pressed Home tab icon again
+      if (selectedPostForDetail || selectedUserId || showNotificationScreen) {
+        setSelectedPostForDetail(null);
+        setSelectedUserId(null);
+        setShowNotificationScreen(false);
+      } else {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        fetchPostsData(0, true);
+      }
+    });
+    return unsubscribe;
+  }, [navigation, selectedPostForDetail, selectedUserId, showNotificationScreen, activeTab, sortFilters, mediaFilter, debouncedSearchQuery, selectedCategoryFilters]);
+
+
+  // Reactive auto-sync: keep local cache updated on any post state mutations (likes, bookmarks, comments)
+  useEffect(() => {
+    if (posts && posts.length > 0 && !loading && !refreshing) {
+      const cacheKey = getCurrentCacheKey();
+      savePostsToCache(cacheKey, posts);
+    }
+  }, [posts, loading, refreshing]);
+
+
 
   const handleLoadMore = () => {
     if (!loadingMore && hasMore && !loading && !refreshing) {
