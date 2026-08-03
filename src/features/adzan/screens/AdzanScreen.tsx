@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Modal, Platform } from 'react-native';
+
 import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
 import { Card } from '../../../components/common/Card';
 import { LocationPickerModal } from '../../../components/common/LocationPickerModal';
@@ -13,7 +14,8 @@ import { apiClient } from '../../../api/apiClient';
 import { ENDPOINTS } from '../../../api/endpoints';
 import { NotificationService } from '../../../services/notification.service';
 import { PrayerBackgroundService } from '../../../services/prayerBackground.service';
-import { Clock, MapPin, Bell, CheckCircle2, Circle, ChevronRight, Calendar as CalendarIcon, X, Check } from 'lucide-react-native';
+import { BackgroundPermissionModal } from '../../../components/common/BackgroundPermissionModal';
+import { Clock, MapPin, Bell, CheckCircle2, Circle, ChevronRight, Calendar as CalendarIcon, X, Check, BatteryCharging } from 'lucide-react-native';
 
 interface DayItem {
   dateStr: string;
@@ -38,6 +40,15 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [isOffsetModalOpen, setIsOffsetModalOpen] = useState(false);
+  const [isBgPermissionModalOpen, setIsBgPermissionModalOpen] = useState(false);
+
+  const handleToggleStickyNotif = (value: boolean) => {
+    setStickyNotifEnabled(value);
+    if (value && Platform.OS === 'android') {
+      setIsBgPermissionModalOpen(true);
+    }
+  };
+
 
   const scrollViewRef = React.useRef<ScrollView>(null);
 
@@ -436,10 +447,21 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
               <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
                 Pengingat terpajang terus di status bar HP (tidak bisa di-swipe hapus)
               </Text>
+              {stickyNotifEnabled && Platform.OS === 'android' && (
+                <TouchableOpacity
+                  style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 }}
+                  onPress={() => setIsBgPermissionModalOpen(true)}
+                >
+                  <BatteryCharging size={13} color={colors.primary} />
+                  <Text style={{ fontSize: 11, color: colors.primary, fontWeight: 'bold', textDecorationLine: 'underline' }}>
+                    Panduan Bebas Hemat Baterai HP
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
             <Switch
               value={stickyNotifEnabled}
-              onValueChange={setStickyNotifEnabled}
+              onValueChange={handleToggleStickyNotif}
               trackColor={{ false: '#CBD5E1', true: colors.primary }}
               thumbColor={colors.surface}
             />
@@ -447,11 +469,18 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
         </Card>
       </ScrollView>
 
+      {/* Background Permission Modal for Battery Optimization Exemption */}
+      <BackgroundPermissionModal
+        visible={isBgPermissionModalOpen}
+        onClose={() => setIsBgPermissionModalOpen(false)}
+      />
+
       {/* Location Picker Modal */}
       <LocationPickerModal
         visible={isLocationModalOpen}
         onClose={() => setIsLocationModalOpen(false)}
       />
+
 
       {/* Guest Guard Modal */}
       <GuestGuardModal

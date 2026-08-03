@@ -32,7 +32,9 @@ export const ENDPOINTS = {
     BOOKMARKS: '/posts/bookmarks/all',
     LIKED_POSTS: '/posts/likes/all',
     CREATE: '/posts',
+    UPLOAD_SIGNATURE: '/posts/upload-signature',
     LIKE: (id: string) => `/posts/${id}/like`,
+
     BOOKMARK: (id: string) => `/posts/${id}/bookmark`,
     COMMENTS: (id: string) => `/posts/${id}/comments`,
     DELETE: (id: string) => `/posts/${id}`,

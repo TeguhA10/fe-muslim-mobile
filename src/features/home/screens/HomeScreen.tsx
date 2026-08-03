@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
+
 import {
   View,
   Text,
@@ -374,35 +376,82 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
     (async () => {
       setUploadingPostBanner('Mengirim postingan Anda...');
       try {
-        const formData = new FormData();
-        formData.append('content', contentToUpload);
-        formData.append('category', categoryToUpload);
+        let uploadedImageUrls: string[] = [];
 
-        if (linksToUpload.length > 0) {
-          formData.append('links', JSON.stringify(linksToUpload));
+        if (imagesToUpload.length > 0) {
+          setUploadingPostBanner('Mengunggah gambar ke Cloudinary...');
+          try {
+            const sigRes = await apiClient.get(ENDPOINTS.POSTS.UPLOAD_SIGNATURE);
+            const { signature, timestamp, apiKey, cloudName, folder } = sigRes.data?.data || {};
+
+            if (signature && apiKey && cloudName) {
+              const uploadPromises = imagesToUpload.map(async (img, index) => {
+                let uri = img.uri;
+                if (Platform.OS === 'android' && !uri.startsWith('file://') && !uri.startsWith('content://')) {
+                  uri = `file://${uri}`;
+                }
+                const cleanUri = uri.split('?')[0];
+                const fileExt = cleanUri.split('.').pop()?.toLowerCase() || 'jpg';
+                const mimeType = (img as any).mimeType || (fileExt === 'png' ? 'image/png' : fileExt === 'webp' ? 'image/webp' : 'image/jpeg');
+                const fileName = `upload_${Date.now()}_${index}.${fileExt}`;
+
+                const cldData = new FormData();
+                cldData.append('file', { uri, name: fileName, type: mimeType } as any);
+                cldData.append('api_key', apiKey);
+                cldData.append('timestamp', String(timestamp));
+                cldData.append('signature', signature);
+                cldData.append('folder', folder || 'muslim_app/posts');
+
+                const cldRes = await axios.post(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, cldData, {
+                  headers: { 'Content-Type': 'multipart/form-data' },
+                  transformRequest: [(data) => data],
+                  timeout: 60000,
+                });
+
+
+                return cldRes.data?.secure_url;
+              });
+
+              const results = await Promise.all(uploadPromises);
+              uploadedImageUrls = results.filter((url): url is string => Boolean(url));
+            }
+          } catch (cldErr) {
+            console.log('[Direct Cloudinary Upload] Fallback to backend upload:', cldErr);
+          }
         }
 
-        imagesToUpload.forEach((img, index) => {
-          let uri = img.uri;
-          if (Platform.OS === 'android' && !uri.startsWith('file://') && !uri.startsWith('content://')) {
-            uri = `file://${uri}`;
-          }
-          const cleanUri = uri.split('?')[0];
-          const fileExt = cleanUri.split('.').pop()?.toLowerCase() || 'jpg';
-          const mimeType = (img as any).mimeType || (fileExt === 'png' ? 'image/png' : fileExt === 'webp' ? 'image/webp' : 'image/jpeg');
-          const fileName = `upload_${Date.now()}_${index}.${fileExt}`;
+        setUploadingPostBanner('Mempublikasikan postingan...');
+        let res: any;
 
-          formData.append('images', {
-            uri: uri,
-            name: fileName,
-            type: mimeType,
-          } as any);
-        });
+        if (uploadedImageUrls.length > 0 || imagesToUpload.length === 0) {
+          res = await apiClient.post(ENDPOINTS.POSTS.CREATE, {
+            content: contentToUpload,
+            category: categoryToUpload,
+            links: linksToUpload,
+            images: uploadedImageUrls,
+          });
+        } else {
+          // Fallback to backend multipart upload if presigned upload fails
+          const formData = new FormData();
+          formData.append('content', contentToUpload);
+          formData.append('category', categoryToUpload);
+          if (linksToUpload.length > 0) formData.append('links', JSON.stringify(linksToUpload));
 
-        const res = await apiClient.post(ENDPOINTS.POSTS.CREATE, formData, {
-          timeout: 60000,
-        });
+          imagesToUpload.forEach((img, index) => {
+            let uri = img.uri;
+            if (Platform.OS === 'android' && !uri.startsWith('file://') && !uri.startsWith('content://')) {
+              uri = `file://${uri}`;
+            }
+            const cleanUri = uri.split('?')[0];
+            const fileExt = cleanUri.split('.').pop()?.toLowerCase() || 'jpg';
+            const mimeType = (img as any).mimeType || (fileExt === 'png' ? 'image/png' : fileExt === 'webp' ? 'image/webp' : 'image/jpeg');
+            const fileName = `upload_${Date.now()}_${index}.${fileExt}`;
 
+            formData.append('images', { uri, name: fileName, type: mimeType } as any);
+          });
+
+          res = await apiClient.post(ENDPOINTS.POSTS.CREATE, formData, { timeout: 60000 });
+        }
 
         if (res.data?.data) {
           setPosts((prev) => [res.data.data, ...prev]);
