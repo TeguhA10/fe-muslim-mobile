@@ -14,16 +14,22 @@
     },
     "preview": {
       "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
         "EXPO_PUBLIC_ENV": "staging",
-        "EXPO_PUBLIC_API_BASE_URL": "https://staging-api.muslimapp.com/api/v1"
+        "EXPO_PUBLIC_API_BASE_URL": "https://be-muslim-app.onrender.com/api/v1"
       }
     },
     "production": {
       "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
         "EXPO_PUBLIC_ENV": "production",
-        "EXPO_PUBLIC_API_BASE_URL": "https://api.muslimapp.com/api/v1"
+        "EXPO_PUBLIC_API_BASE_URL": "https://be-muslim-app.onrender.com/api/v1"
       }
     }
   },
