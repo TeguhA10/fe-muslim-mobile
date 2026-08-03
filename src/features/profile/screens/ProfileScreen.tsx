@@ -11,7 +11,9 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  Platform,
 } from 'react-native';
+
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
@@ -239,21 +241,23 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
       setUploadingAvatar(true);
 
       const formData = new FormData();
-      const filename = selectedAsset.uri.split('/').pop() || 'avatar.jpg';
+      let avatarUri = selectedAsset.uri;
+      if (Platform.OS === 'android' && !avatarUri.startsWith('file://') && !avatarUri.startsWith('content://')) {
+        avatarUri = `file://${avatarUri}`;
+      }
+
+      const filename = avatarUri.split('/').pop()?.split('?')[0] || 'avatar.jpg';
       const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : 'image/jpeg';
+      const type = (selectedAsset as any).mimeType || (match ? `image/${match[1]}` : 'image/jpeg');
 
       formData.append('avatar', {
-        uri: selectedAsset.uri,
+        uri: avatarUri,
         name: filename,
         type,
       } as any);
 
-      const uploadRes = await apiClient.post(ENDPOINTS.AUTH.AVATAR, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const uploadRes = await apiClient.post(ENDPOINTS.AUTH.AVATAR, formData);
+
 
       if (uploadRes.data?.data?.avatar_url) {
         const newAvatarUrl = uploadRes.data.data.avatar_url;

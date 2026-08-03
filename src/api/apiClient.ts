@@ -24,10 +24,18 @@ const getBaseUrl = () => {
 
 export const apiClient = axios.create({
   baseURL: getBaseUrl(),
-  timeout: 15000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+// Auto-remove Content-Type header for FormData so React Native generates proper multipart boundary
+apiClient.interceptors.request.use((config) => {
+  if (config.data && (config.data instanceof FormData || (config.data as any)._parts)) {
+    delete config.headers['Content-Type'];
+  }
+  return config;
 });
 
 export const setAuthToken = (token: string | null) => {
@@ -37,3 +45,4 @@ export const setAuthToken = (token: string | null) => {
     delete apiClient.defaults.headers.common['Authorization'];
   }
 };
+

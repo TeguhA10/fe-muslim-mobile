@@ -12,7 +12,9 @@ import {
   Image,
   ScrollView,
   Share,
+  Platform,
 } from 'react-native';
+
 import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
 import { Card } from '../../../components/common/Card';
 import { Button } from '../../../components/common/Button';
@@ -381,21 +383,26 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
         }
 
         imagesToUpload.forEach((img, index) => {
-          const fileExt = img.uri.split('.').pop() || 'jpg';
+          let uri = img.uri;
+          if (Platform.OS === 'android' && !uri.startsWith('file://') && !uri.startsWith('content://')) {
+            uri = `file://${uri}`;
+          }
+          const cleanUri = uri.split('?')[0];
+          const fileExt = cleanUri.split('.').pop()?.toLowerCase() || 'jpg';
+          const mimeType = (img as any).mimeType || (fileExt === 'png' ? 'image/png' : fileExt === 'webp' ? 'image/webp' : 'image/jpeg');
           const fileName = `upload_${Date.now()}_${index}.${fileExt}`;
+
           formData.append('images', {
-            uri: img.uri,
+            uri: uri,
             name: fileName,
-            type: `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`
+            type: mimeType,
           } as any);
         });
 
         const res = await apiClient.post(ENDPOINTS.POSTS.CREATE, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
           timeout: 60000,
         });
+
 
         if (res.data?.data) {
           setPosts((prev) => [res.data.data, ...prev]);
