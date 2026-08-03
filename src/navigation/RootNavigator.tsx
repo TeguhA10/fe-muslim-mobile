@@ -59,7 +59,7 @@ export const RootNavigator: React.FC = () => {
 
         setAuthToken(accessToken);
 
-        // Restore cached user session immediately to prevent flicker/logout on refresh
+        // Restore cached user session temporarily for fast UI load
         if (storedUserJson && isActive) {
           try {
             const cachedUser = JSON.parse(storedUserJson);
@@ -68,48 +68,52 @@ export const RootNavigator: React.FC = () => {
         }
 
         // Try syncing fresh profile data from backend
+        let meSuccess = false;
         try {
           const meRes = await apiClient.get(ENDPOINTS.AUTH.ME);
           const user = meRes.data?.data?.user || null;
           if (user && isActive) {
             await useAuthStore.getState().login(user, accessToken, refreshToken || null);
+            meSuccess = true;
           }
-          return;
         } catch (meErr: any) {
-          // If explicit 401 Unauthorized, token is invalid -> try refresh token or logout
-          if (meErr?.response?.status === 401) {
-            if (!refreshToken) {
-              if (isActive) await useAuthStore.getState().logout();
-              return;
-            }
-          } else {
-            // Network error or server offline: Keep cached session, do not log out
+          // If no server response at all (offline/network error), keep cached session
+          if (!meErr?.response) {
             return;
           }
         }
 
-        // Attempt Refresh Token
-        try {
-          const refreshRes = await apiClient.post(ENDPOINTS.AUTH.REFRESH_TOKEN, { refresh_token: refreshToken });
-          const newAccessToken = refreshRes.data?.data?.accessToken || '';
-          const newRefreshToken = refreshRes.data?.data?.refreshToken || '';
-          if (!newAccessToken || !newRefreshToken) {
-            if (isActive) await useAuthStore.getState().logout();
-            return;
-          }
+        if (meSuccess) return;
 
-          setAuthToken(newAccessToken);
-          if (isActive) await useAuthStore.getState().setTokens(newAccessToken, newRefreshToken);
+        // Server responded with an error for GET /auth/me -> Attempt Refresh Token if available
+        if (refreshToken) {
+          try {
+            const refreshRes = await apiClient.post(ENDPOINTS.AUTH.REFRESH_TOKEN, { refresh_token: refreshToken });
+            const newAccessToken = refreshRes.data?.data?.accessToken || '';
+            const newRefreshToken = refreshRes.data?.data?.refreshToken || '';
+            if (newAccessToken && newRefreshToken) {
+              setAuthToken(newAccessToken);
+              if (isActive) await useAuthStore.getState().setTokens(newAccessToken, newRefreshToken);
 
-          const meRes = await apiClient.get(ENDPOINTS.AUTH.ME);
-          const user = meRes.data?.data?.user || null;
-          if (user && isActive) {
-            await useAuthStore.getState().login(user, newAccessToken, newRefreshToken);
+              const meRes = await apiClient.get(ENDPOINTS.AUTH.ME);
+              const user = meRes.data?.data?.user || null;
+              if (user && isActive) {
+                await useAuthStore.getState().login(user, newAccessToken, newRefreshToken);
+                return;
+              }
+            }
+          } catch (refreshErr: any) {
+            // If server responds with any error during refresh, session is invalid -> logout
+            if (refreshErr?.response) {
+              if (isActive) await useAuthStore.getState().logout();
+              return;
+            }
           }
-        } catch (refreshErr: any) {
-          if (refreshErr?.response?.status === 401) {
-            if (isActive) await useAuthStore.getState().logout();
-          }
+        }
+
+        // If server invalidated session or refresh failed, log out immediately
+        if (isActive) {
+          await useAuthStore.getState().logout();
         }
       } finally {
         if (isActive) setIsBooting(false);
