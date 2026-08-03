@@ -1,47 +1,44 @@
 # 📱 Muslim Application - Mobile Frontend (`fe-muslim-mobile`)
 
-[![React Native](https://img.shields.io/badge/React_Native-v0.76-blue.svg)](https://reactnative.dev/)
-[![Expo](https://img.shields.io/badge/Expo-SDK_52-black.svg)](https://expo.dev/)
+[![React Native](https://img.shields.io/badge/React_Native-v0.79-blue.svg)](https://reactnative.dev/)
+[![Expo](https://img.shields.io/badge/Expo-SDK_53-black.svg)](https://expo.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-v5.3-blue.svg)](https://www.typescriptlang.org/)
-[![TanStack Query](https://img.shields.io/badge/TanStack_Query-v5-ff4154.svg)](https://tanstack.com/query)
 [![Zustand](https://img.shields.io/badge/Zustand-v5-brown.svg)](https://github.com/pmndrs/zustand)
 [![License](https://img.shields.io/badge/License-ISC-yellow.svg)](#license)
 
-Aplikasi Mobile Muslim modern berbasis **React Native** & **Expo SDK 52** (TypeScript) dengan arsitektur *Domain-Driven Feature-Based*. Aplikasi ini menyediakan fitur lengkap meliputi Jadwal Sholat presisi, Kompas Kiblat 3D/Sensors, Peta Masjid Terdekat (OpenStreetMap + Leaflet), Social Feed Komunitas Muslim, Kalender Hijriah & Notifikasi Adzan.
+Aplikasi Mobile Muslim modern berbasis **React Native** & **Expo SDK 53** (TypeScript) dengan arsitektur *Domain-Driven Feature-Based*. Aplikasi ini menyediakan fitur lengkap meliputi Jadwal Sholat presisi, Kompas Kiblat 3D/Sensors, Peta Masjid Terdekat (OpenStreetMap + Leaflet), Social Feed Komunitas Muslim, Kalender Hijriah & Notifikasi Push Adzan Real-Time.
+
+Didesain dengan keandalan sesi tinggi (*Offline Session Persistence*) dan optimasi performa tinggi untuk kelancaran scrolling 60 FPS di seluruh perangkat HP Android dan iOS.
 
 ---
 
-## ✨ Fitur-Fitur Utama
+## ✨ Fitur-Fitur Utama & Keunggulan UI/UX
 
-- 🕌 **Jadwal Sholat Real-time & Countdown**:
-  - Perhitungan waktu sholat berdasarkan koordinat lokasi GPS secara otomatis.
-  - Dukungan kustomisasi metode kalkulasi (Kemenag RI, MWL, ISNA, Umm Al-Qura, dll).
-  - Tampilan *countdown* (hitung mundur) menuju waktu sholat berikutnya secara akurat.
-  - Pengingat Suara Adzan dan Notifikasi Lokal.
+- 🕌 **Jadwal Sholat Real-time & Countdowns**:
+  - Perhitungan waktu sholat berdasarkan koordinat lokasi GPS secara otomatis dengan penanganan zona waktu lokal presisi.
+  - Tampilan *countdown* (hitung mundur) menuju waktu sholat berikutnya secara real-time.
+  - Kalibrasi tanggal lokal otomatis yang mencegah pergeseran zona waktu saat pergantian hari.
+
+- 🔒 **Sesi & Keamanan Kredensial Terenkripsi**:
+  - Penyimpanan token autentikasi memanfaatkan **Android KeyStore & iOS Keychain** (`expo-secure-store`).
+  - Pemulihan sesi tangguh (*Session Resilience*) yang mencegah logout tidak disengaja saat aplikasi di-refresh atau koneksi terputus.
 
 - 🕋 **Kompas Arah Kiblat (Qibla Finder)**:
-  - Penentuan arah Kiblat dari posisi manapun di dunia menggunakan kalkulasi matematika *Great-Circle Distance / Spherical Trigonometry*.
-  - Menggunakan gabungan sensor Magnetometer & Accelerometer perangkat HP pengguna.
-  - Indikator Visual interaktif yang memudahkan penyesuaian posisi sholat.
+  - Penentuan arah Kiblat presisi menggunakan kalkulasi *Great-Circle Distance / Spherical Trigonometry*.
+  - Menggunakan sensor Magnetometer & Accelerometer perangkat HP dengan **Petunjuk Visual Kalibrasi Angka 8**.
 
 - 🗺️ **Peta Masjid Terdekat (Mosque Finder)**:
-  - Tampilan Peta Interaktif menggunakan **Leaflet + OpenStreetMap** dalam WebView (bebas biaya & tanpa memerlukan Google Maps API Key).
-  - Deteksi masjid di sekitar posisi lokasi pengguna dalam radius kustom.
-  - Fitur Detail Masjid, Petunjuk Arah, Ulasan & Rating Komunitas, serta Simpan Bookmark Masjid.
+  - Peta Interaktif **Leaflet + OpenStreetMap** dalam WebView (tanpa memerlukan Google Maps API Key).
+  - Integrasi pencarian geospasial **PostGIS** sub-milidetik dari server backend.
 
 - 📱 **Social Feed & Komunitas Muslim**:
-  - Garis waktu (Timeline Feed) postingan komunitas Muslim.
-  - Dukungan posting teks & **Multiple Image Upload** dengan modal pratinjau zoom (*ImageViewerModal*).
-  - Fitur Like, Simpan Bookmark Postingan, serta Komentar Bertingkat (*Nested / Threaded Reply*).
+  - Garis waktu (Timeline Feed) postingan komunitas Muslim dengan **Optimistic UI Updates**.
+  - Dukungan **Direct Presigned Image Upload** langsung dari HP ke Cloudinary CDN.
+  - Komentar Bertingkat (*Nested Reply*) dan modal zoom viewer gambar (*ImageViewerModal*).
 
-- 📅 **Kalender Hijriah & Hari Besar Islam**:
-  - Konversi penanggalan Masehi ke Hijriah secara otomatis.
-  - Informasi Hari Besar Islam (Idul Fitri, Idul Adha, Tahun Baru Hijriah, Isra Miraj, dll).
-
-- 👤 **Manajemen Profil & Kustomisasi**:
-  - Fitur Login & Registrasi Akun.
-  - Pengaturan Metode Kalkulasi Sholat & Mazhab.
-  - Mode Tampilan Komunitas & Manajemen Postingan Saya.
+- 🔔 **Notifikasi Push & Top Bar Redesign**:
+  - Desain Top Bar Notifikasi modern dan proporsional dengan indikator badge belum dibaca.
+  - Notifikasi push real-time via **Firebase Cloud Messaging (FCM)** & **Socket.IO**.
 
 ---
 
@@ -49,59 +46,65 @@ Aplikasi Mobile Muslim modern berbasis **React Native** & **Expo SDK 52** (TypeS
 
 | Kategori | Teknologi / Library |
 | :--- | :--- |
-| **Framework & Engine** | React Native (Expo SDK 52) |
+| **Framework & Engine** | React Native (Expo SDK 53) |
 | **Bahasa Pemrograman** | TypeScript |
 | **Navigasi** | React Navigation v7 (Bottom Tabs & Native Stack) |
-| **State Management** | Zustand (Global App State), TanStack React Query v5 (Server Data Caching) |
+| **State Management** | Zustand (Global App State), TanStack React Query v5 |
+| **Secure Storage** | `expo-secure-store` (Android KeyStore / iOS Keychain) |
 | **Peta & Lokasi** | Leaflet JS via `react-native-webview`, OpenStreetMap, `expo-location` |
-| **Sensors & Device Services**| `expo-sensors` (Magnetometer), `expo-notifications`, `expo-audio` |
-| **UI Components & Styling** | Lucide React Native (Icons), Custom Emerald-Gold Design System, `react-native-safe-area-context` |
-| **HTTP Client** | Axios dengan Interceptor JWT Token |
+| **Sensors & Device Services**| `expo-sensors` (Magnetometer), `expo-notifications`, `expo-av` |
+| **Icons & Design System** | Lucide React Native, Custom Emerald & Gold Design Token |
+| **HTTP & Realtime Client** | Axios dengan Interceptor Token & Socket.IO Client |
 
 ---
 
 ## 🏗️ Arsitektur Proyek (Domain-Driven Feature-Based)
 
-Struktur direktori didesain modular berbasis fitur (*feature-based*):
-
 ```
 fe-muslim-mobile/
-├── assets/                     # Gambar, Logo, Asset Suara Adzan & Splash
+├── assets/                     # Asset Gambar, Logo, Sound Adzan, & Splash Screen
 ├── src/
-│   ├── api/                    # Configuration Axios Client & Endpoint Registry
+│   ├── api/                    # Configuration Axios Client & API Endpoints
 │   ├── components/             # Reusable Global UI (Button, Card, Input, ScreenWrapper, ImageViewerModal)
-│   ├── constants/              # Tema Palette (Emerald & Gold), Ukuran Font, Storage Keys
+│   ├── constants/              # Design Tokens (Emerald & Gold Palette, Typography, Storage Keys)
 │   ├── features/               # Feature Modules (Domain-Driven)
-│   │   ├── adzan/              # Jadwal Sholat, Notifikasi Local, Card Countdown
-│   │   ├── auth/               # Screen Login, Register & Form Auth
+│   │   ├── adzan/              # Jadwal Sholat, Countdown, Checkbox Riwayat 7 Hari
+│   │   ├── auth/               # Screen Login, Register, OTP, & Forgot Password
 │   │   ├── home/               # Social Feed, Post Card, Post Detail, Komentar & Zoom Viewer
-│   │   ├── ibadah/             # Screen Kompas Kiblat & Sensor Compass
+│   │   ├── ibadah/             # Screen Kompas Kiblat & Calibration Hint
 │   │   ├── maps/               # Screen Peta Masjid (Leaflet WebView), Detail & Modal Review
-│   │   └── profile/            # Screen Profil User, Edit Profile, Settings & Postingan Saya
-│   ├── hooks/                  # Custom Hooks (useAuth, useLocation, useQibla, usePrayerTimes)
+│   │   ├── notifications/      # Screen Top Bar Notifikasi Redesign & History List
+│   │   └── profile/            # Screen Profil User, Edit Profile, Settings & Trash Posts
+│   ├── hooks/                  # Custom Hooks (useAuth, useLocation, useQibla, useGuestGuard)
 │   ├── navigation/             # MainTabNavigator (Bottom Tabs) & RootNavigator (Stack Navigation)
-│   ├── services/               # Device Services (Location, FCM, Audio Player)
-│   ├── store/                  # Global State Zustand (Auth Store, Settings Store)
-│   ├── types/                  # TypeScript Types & Data Transfer Models
-│   └── utils/                  # Kalkulasi Trigonometri Kiblat, Formatter Tanggal & Waktu
-├── app.json                    # Expo Configuration (Android/iOS App Config)
-├── eas.json                    # Expo Application Services Build Configuration
-├── package.json
-└── tsconfig.json               # Konfigurasi TypeScript React Native
+│   ├── services/               # Device Services (Location, FCM Push, Socket.IO Client)
+│   ├── store/                  # Global State Zustand (Auth Store, Settings Store, Theme Store)
+│   ├── types/                  # TypeScript Data Models
+│   └── utils/                  # Secure Storage Wrapper, Trigonometri Kiblat, Date Formatters
+├── .env.local                  # Environment Config Mode Local
+├── .env.staging                # Environment Config Mode Staging
+├── .env.production             # Environment Config Mode Production
+├── app.json                    # Expo Application Configuration
+├── eas.json                    # EAS Build Profiles (development, preview, production)
+└── package.json
 ```
 
 ---
 
 ## ⚙️ Variabel Lingkungan (`.env`)
 
-Buat file `.env` di root direktori proyek `fe-muslim-mobile` dengan menyalin `.env.example`:
+Aplikasi mendukung multi-mode environment (`.env.local`, `.env.staging`, `.env.production`):
 
 ```env
-# URL Endpoint API Backend (Sesuaikan dengan IP Komputer/Server Anda jika menggunakan HP Fisik)
+# Mode Lingkungan Active (development | staging | production)
+EXPO_PUBLIC_ENV=development
+
+# URL Endpoint API Backend
+# - Android Emulator : http://10.0.2.2:5000/api/v1
+# - iOS / Web        : http://localhost:5000/api/v1
+# - HP Fisik (WiFi)  : http://192.168.x.x:5000/api/v1
 EXPO_PUBLIC_API_BASE_URL=http://localhost:5000/api/v1
 ```
-
-> 💡 **Tips Pengujian HP Fisik (Expo Go)**: Ganti `localhost` dengan IP local komputer Anda (contoh: `http://192.168.1.50:5000/api/v1`).
 
 ---
 
@@ -109,7 +112,7 @@ EXPO_PUBLIC_API_BASE_URL=http://localhost:5000/api/v1
 
 ### Prasyarat:
 - **Node.js** (v18 atau v20+)
-- **Expo Go App** (diunduh dari Google Play Store / Apple App Store di HP Anda) atau Emulator Android/iOS.
+- **Expo Go App** (di HP) atau Android Emulator / iOS Simulator.
 
 ### Langkah Menjalankan:
 
@@ -130,25 +133,23 @@ EXPO_PUBLIC_API_BASE_URL=http://localhost:5000/api/v1
    ```
 
 4. **Buka di Perangkat**:
-   - **HP Fisik**: Scan QR Code yang muncul di terminal menggunakan aplikasi **Expo Go**.
-   - **Android Emulator**: Tekan tombol `a` di terminal.
-   - **iOS Simulator**: Tekan tombol `i` di terminal.
+   - **HP Fisik**: Scan QR Code di terminal menggunakan aplikasi **Expo Go**.
+   - **Android Emulator**: Tekan `a` di terminal.
+   - **iOS Simulator**: Tekan `i` di terminal.
+   - **Web Browser**: Tekan `w` di terminal.
 
 ---
 
 ## 📦 Build Standalone APK / Bundle (EAS Build)
 
-Proyek ini telah dikonfigurasi dengan `eas.json` untuk membangun file APK Android:
+Bangun file APK Android untuk pengujian staging atau rilis produksi:
 
 ```bash
-# Install EAS CLI
-npm install -g eas-cli
-
-# Login ke akun Expo
-eas login
-
-# Jalankan build APK Android Preview
+# Build APK Android Staging Preview
 eas build --platform android --profile preview
+
+# Build AAB Android Production Play Store
+eas build --platform android --profile production
 ```
 
 ---
@@ -161,7 +162,7 @@ eas build --platform android --profile preview
 | `npm run android` | Menjalankan di Emulator Android |
 | `npm run ios` | Menjalankan di Simulator iOS |
 | `npm run web` | Menjalankan versi Web Expo |
-| `npm run lint` | Menjalankan linter kode |
+| `npm run lint` | Menjalankan pengecekan ESLint & TypeScript |
 
 ---
 
