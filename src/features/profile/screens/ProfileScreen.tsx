@@ -410,17 +410,17 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={() => {
-                  if (profileData?.user?.avatar_url) {
+                  if (profileData?.user?.avatar_url || currentUser?.avatar_url) {
                     setViewAvatarModal(true);
                   }
                 }}
               >
                 <View style={[styles.avatarRing, { borderColor: colors.accent }]}>
-                  {profileData?.user?.avatar_url ? (
-                    <Image source={{ uri: profileData.user.avatar_url }} style={styles.avatarImage} />
+                  {profileData?.user?.avatar_url || currentUser?.avatar_url ? (
+                    <Image source={{ uri: profileData?.user?.avatar_url || currentUser?.avatar_url || '' }} style={styles.avatarImage} />
                   ) : (
                     <View style={[styles.avatarBox, { backgroundColor: colors.primaryDark }]}>
-                      <Text style={styles.avatarText}>{getInitials(profileData?.user?.name || 'Ahmad Hidayat')}</Text>
+                      <Text style={styles.avatarText}>{getInitials(profileData?.user?.name || currentUser?.name || 'Pengguna')}</Text>
                     </View>
                   )}
                 </View>
@@ -440,11 +440,11 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
             </View>
 
             <View style={styles.nameRow}>
-              <Text style={[styles.userName, { color: colors.text }]}>{profileData?.user?.name || 'Ahmad Hidayat'}</Text>
+              <Text style={[styles.userName, { color: colors.text }]}>{profileData?.user?.name || currentUser?.name || 'Pengguna'}</Text>
               <Award color={colors.accent} size={18} />
             </View>
 
-            <Text style={[styles.userEmail, { color: colors.textMuted }]}>{profileData?.user?.email || 'ahmad@example.com'}</Text>
+            <Text style={[styles.userEmail, { color: colors.textMuted }]}>{profileData?.user?.email || currentUser?.email || ''}</Text>
 
             {!!(profileData?.user as any)?.bio && (
               <Text style={{ fontSize: 13, color: colors.text, fontStyle: 'italic', marginTop: 4, textAlign: 'center', paddingHorizontal: 16 }}>

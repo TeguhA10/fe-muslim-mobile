@@ -36,9 +36,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     ? 'Format email tidak valid (contoh: nama@email.com)'
     : '';
 
-  const passwordError = passwordTouched && password.length > 0 && password.length < 6
-    ? 'Kata sandi minimal 6 karakter'
-    : '';
+  const passwordError = '';
   const [loading, setLoading] = useState(false);
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
 

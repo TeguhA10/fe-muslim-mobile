@@ -11,6 +11,8 @@ import { apiClient } from '../../../api/apiClient';
 import { ENDPOINTS } from '../../../api/endpoints';
 import { Lock, Mail, ArrowLeft, KeyRound } from 'lucide-react-native';
 
+import { validatePasswordStrength } from '../../../utils/passwordValidator';
+
 interface ForgotPasswordScreenProps {
   onNavigateLogin: () => void;
 }
@@ -28,9 +30,8 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ onNa
     ? 'Format email tidak valid (contoh: nama@email.com)'
     : '';
 
-  const newPasswordError = newPasswordTouched && newPassword.length > 0 && newPassword.length < 6
-    ? 'Kata sandi baru minimal 6 karakter'
-    : '';
+  const passValidation = newPasswordTouched && newPassword.length > 0 ? validatePasswordStrength(newPassword) : { valid: true, message: '' };
+  const newPasswordError = !passValidation.valid ? passValidation.message : '';
   const [loading, setLoading] = useState(false);
   const [otpExpiresAt, setOtpExpiresAt] = useState<string | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
@@ -115,8 +116,9 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ onNa
       return;
     }
 
-    if (!newPassword.trim() || newPassword.trim().length < 6) {
-      showAlert('Perhatian', 'Kata sandi baru minimal 6 karakter', 'warning');
+    const passCheck = validatePasswordStrength(newPassword);
+    if (!passCheck.valid) {
+      showAlert('Kata Sandi Lemah', passCheck.message, 'warning');
       return;
     }
 

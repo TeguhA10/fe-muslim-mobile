@@ -28,6 +28,8 @@ import {
   CheckCircle2,
 } from 'lucide-react-native';
 
+import { validatePasswordStrength } from '../../../utils/passwordValidator';
+
 interface ChangePasswordScreenProps {
   onBack: () => void;
 }
@@ -48,9 +50,8 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({ onBa
   const [newPasswordTouched, setNewPasswordTouched] = useState(false);
   const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
 
-  const newPasswordError = newPasswordTouched && newPassword.length > 0 && newPassword.length < 6
-    ? 'Kata sandi baru minimal 6 karakter'
-    : '';
+  const passValidation = newPasswordTouched && newPassword.length > 0 ? validatePasswordStrength(newPassword) : { valid: true, message: '' };
+  const newPasswordError = !passValidation.valid ? passValidation.message : '';
 
   const confirmPasswordError = confirmPasswordTouched && confirmPassword.length > 0 && confirmPassword !== newPassword
     ? 'Konfirmasi kata sandi baru tidak cocok'
@@ -107,8 +108,9 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({ onBa
       return;
     }
 
-    if (!newPassword || newPassword.length < 6) {
-      showAlert('Perhatian', 'Kata sandi baru minimal harus 6 karakter.', 'warning');
+    const passCheck = validatePasswordStrength(newPassword);
+    if (!passCheck.valid) {
+      showAlert('Kata Sandi Lemah', passCheck.message, 'warning');
       return;
     }
 
@@ -357,7 +359,7 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({ onBa
           >
             <ShieldCheck color={colors.primary} size={18} />
             <Text style={[styles.guidelineText, { color: colors.textMuted }]}>
-              Tips Keamanan: Gunakan kombinasi minimal 6 karakter dengan huruf dan angka agar kata sandi Anda kuat.
+              Tips Keamanan: Minimal 8 karakter dengan kombinasi huruf besar (A-Z), huruf kecil (a-z), angka (0-9), dan simbol (!@#$%^&*).
             </Text>
           </View>
 

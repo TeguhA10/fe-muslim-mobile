@@ -95,7 +95,16 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const [sortFilters, setSortFilters] = useState<string[]>(['terbaru']);
   const [mediaFilter, setMediaFilter] = useState<'semua' | 'gambar_saja'>('semua');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
   const [selectedCategoryFilters, setSelectedCategoryFilters] = useState<string[]>([]);
+
+  // Debounce search query input (400ms delay to prevent rate limit & loading spam)
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   const toggleSortFilter = (filterKey: string) => {
     if (sortFilters.includes(filterKey)) {
@@ -114,6 +123,7 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const [currentLinkInput, setCurrentLinkInput] = useState<string>('');
   const [newPostCategory, setNewPostCategory] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [uploadingPostBanner, setUploadingPostBanner] = useState<string | null>(null);
 
   // Comment Modal State
   const [selectedPostForComment, setSelectedPostForComment] = useState<Post | null>(null);
@@ -170,7 +180,7 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
           offset: pageNum * PAGE_SIZE,
           sort: sortParam,
           media: mediaFilter,
-          search: searchQuery.trim(),
+          search: debouncedSearchQuery,
           category: categoryParam,
           following: isFollowingOnly ? 'true' : 'false',
         },
@@ -202,7 +212,7 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
     setHasMore(true);
     flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     fetchPostsData(0, true);
-  }, [activeTab, sortFilters, mediaFilter, searchQuery, selectedCategoryFilters]);
+  }, [activeTab, sortFilters, mediaFilter, debouncedSearchQuery, selectedCategoryFilters]);
 
   const handleLoadMore = () => {
     if (!loadingMore && hasMore && !loading && !refreshing) {
@@ -217,6 +227,30 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   };
 
   const handleAddLink = () => {
+    if (postLinks.length >= 4) {
+      showAlert('Perhatian', 'Maksimal 4 tautan link per postingan.', 'warning');
+      return;
+    }
+    if (!currentLinkInput.trim()) return;
+
+    try {
+      new URL(currentLinkInput.trim());
+    } catch (_) {
+      showAlert('Format Salah', 'Tautan harus diawali dengan http:// atau https://', 'warning');
+      return;
+    }
+
+    if (!postLinks.includes(currentLinkInput.trim())) {
+      setPostLinks([...postLinks, currentLinkInput.trim()]);
+      setCurrentLinkInput('');
+    }
+  };
+
+  const handleRemoveLink = (index: number) => {
+    setPostLinks(postLinks.filter((_, i) => i !== index));
+  };
+
+  const handleLinkSubmit = () => {
     if (currentLinkInput.trim()) {
       setPostLinks([...postLinks, currentLinkInput.trim()]);
       setCurrentLinkInput('');
@@ -242,7 +276,7 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
     }
   };
 
-  // Handle Create Post
+  // Handle Create Post (Background Process / Non-blocking UX)
   const handleCreatePost = async () => {
     if (!newPostContent.trim()) {
       showAlert('Perhatian', 'Isi postingan tidak boleh kosong', 'warning');
@@ -254,50 +288,64 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
       return;
     }
 
-    setSubmitting(true);
-    try {
-      const formData = new FormData();
-      formData.append('content', newPostContent.trim());
-      formData.append('category', newPostCategory);
+    // Capture values to upload
+    const contentToUpload = newPostContent.trim();
+    const categoryToUpload = newPostCategory;
+    const linksToUpload = [...postLinks];
+    const imagesToUpload = [...selectedImages];
 
-      if (postLinks.length > 0) {
-        formData.append('links', JSON.stringify(postLinks));
+    // Immediately close modal & reset form inputs for instant non-blocking UX
+    setIsModalOpen(false);
+    setNewPostContent('');
+    setSelectedImages([]);
+    setPostLinks([]);
+    setCurrentLinkInput('');
+    setNewPostCategory(categories[0]?.name ?? '');
+
+    // Background Async Execution
+    (async () => {
+      setUploadingPostBanner('Mengirim postingan Anda...');
+      try {
+        const formData = new FormData();
+        formData.append('content', contentToUpload);
+        formData.append('category', categoryToUpload);
+
+        if (linksToUpload.length > 0) {
+          formData.append('links', JSON.stringify(linksToUpload));
+        }
+
+        imagesToUpload.forEach((img, index) => {
+          const fileExt = img.uri.split('.').pop() || 'jpg';
+          const fileName = `upload_${Date.now()}_${index}.${fileExt}`;
+          formData.append('images', {
+            uri: img.uri,
+            name: fileName,
+            type: `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`
+          } as any);
+        });
+
+        const res = await apiClient.post(ENDPOINTS.POSTS.CREATE, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: 60000,
+        });
+
+        if (res.data?.data) {
+          setPosts((prev) => [res.data.data, ...prev]);
+        } else {
+          fetchPostsData(0, true);
+        }
+
+        showAlert('Berhasil', 'Postingan Anda berhasil dipublikasikan!', 'success');
+      } catch (error: any) {
+        console.error('[CreatePost Background] Error:', error?.response?.data || error?.message || error);
+        const errMsg = error?.response?.data?.message || error?.message || 'Terjadi kesalahan saat mempublikasikan postingan';
+        showAlert('Gagal', errMsg, 'error');
+      } finally {
+        setUploadingPostBanner(null);
       }
-
-      selectedImages.forEach((img, index) => {
-        const fileExt = img.uri.split('.').pop() || 'jpg';
-        const fileName = `upload_${Date.now()}_${index}.${fileExt}`;
-        formData.append('images', {
-          uri: img.uri,
-          name: fileName,
-          type: `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`
-        } as any);
-      });
-
-      const res = await apiClient.post(ENDPOINTS.POSTS.CREATE, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      if (res.data?.data) {
-        setPosts((prev) => [res.data.data, ...prev]);
-      } else {
-        fetchPostsData(0, true);
-      }
-
-      setIsModalOpen(false);
-      setNewPostContent('');
-      setSelectedImages([]);
-      setPostLinks([]);
-      setCurrentLinkInput('');
-      setNewPostCategory(categories[0]?.name ?? '');
-      showAlert('Berhasil', 'Postingan Anda berhasil dipublikasikan!', 'success');
-    } catch (error: any) {
-      showAlert('Gagal', 'Terjadi kesalahan saat mempublikasikan postingan', 'error');
-    } finally {
-      setSubmitting(false);
-    }
+    })();
   };
 
   // Handle Toggle Like
@@ -582,6 +630,22 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
           </TouchableOpacity>
         </ScrollView>
       </View>
+
+      {/* Background Uploading Progress Banner */}
+      {uploadingPostBanner && (
+        <View
+          style={[
+            styles.uploadingBanner,
+            {
+              backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5',
+              borderColor: isDarkMode ? 'rgba(16, 185, 129, 0.3)' : '#A7F3D0',
+            },
+          ]}
+        >
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={[styles.uploadingBannerText, { color: colors.primary }]}>{uploadingPostBanner}</Text>
+        </View>
+      )}
 
       {/* Search & Filter Bar */}
       {(activeTab === 'feed' || activeTab === 'following') && (
@@ -1464,6 +1528,22 @@ const styles = StyleSheet.create({
   linkBadgeText: {
     fontSize: 12,
     maxWidth: 200,
+  },
+  uploadingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginTop: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  uploadingBannerText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
 

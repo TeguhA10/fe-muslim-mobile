@@ -11,6 +11,7 @@ import { useThemeStore } from '../../../store/useThemeStore';
 import { apiClient } from '../../../api/apiClient';
 import { ENDPOINTS } from '../../../api/endpoints';
 import { Lock, Mail, User as UserIcon, Sparkles, ArrowLeft } from 'lucide-react-native';
+import { validatePasswordStrength } from '../../../utils/passwordValidator';
 
 interface RegisterScreenProps {
   onNavigateLogin: () => void;
@@ -37,9 +38,8 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateLogin,
     ? 'Format email tidak valid (contoh: nama@email.com)'
     : '';
 
-  const passwordError = passwordTouched && password.length > 0 && password.length < 6
-    ? 'Kata sandi minimal 6 karakter'
-    : '';
+  const passValidation = passwordTouched && password.length > 0 ? validatePasswordStrength(password) : { valid: true, message: '' };
+  const passwordError = !passValidation.valid ? passValidation.message : '';
 
   const confirmPasswordError = confirmPasswordTouched && confirmPassword.length > 0 && confirmPassword !== password
     ? 'Konfirmasi kata sandi tidak cocok'
@@ -68,6 +68,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateLogin,
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
       showAlert('Perhatian', 'Semua kolom pendaftaran wajib diisi', 'warning');
+      return;
+    }
+
+    const passCheck = validatePasswordStrength(password);
+    if (!passCheck.valid) {
+      showAlert('Kata Sandi Lemah', passCheck.message, 'warning');
       return;
     }
 
