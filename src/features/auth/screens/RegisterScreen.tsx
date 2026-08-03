@@ -92,7 +92,8 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateLogin,
 
       if (res.data?.data?.requires_otp) {
         const otpExpiresAt = res.data?.data?.otp_expires_at || null;
-        showAlert('OTP Terkirim', 'Registrasi berhasil! Membuka layar verifikasi kode OTP 6 digit...', 'success');
+        const msg = res.data?.data?.message || 'Registrasi berhasil! Membuka layar verifikasi kode OTP 6 digit...';
+        showAlert('Kode OTP Terkirim ✉️', msg, 'success');
         setTimeout(() => {
           onNavigateVerifyOtp(email.trim(), otpExpiresAt);
         }, 1200);
@@ -103,7 +104,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateLogin,
         onNavigateVerifyOtp(email.trim(), null);
       }
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || 'Gagal mendaftar. Email mungkin sudah terdaftar.';
+      const errorMsg = error.response?.data?.message || 'Terjadi kesalahan saat pendaftaran. Silakan coba lagi.';
       showAlert('Gagal Pendaftaran', errorMsg, 'error');
     } finally {
       setLoading(false);
