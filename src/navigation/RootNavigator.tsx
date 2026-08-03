@@ -50,6 +50,7 @@ export const RootNavigator: React.FC = () => {
         ]);
         const storedAccessToken = await secureStorage.getItem(AUTH_STORAGE_KEYS.accessToken);
         const storedRefreshToken = await secureStorage.getItem(AUTH_STORAGE_KEYS.refreshToken);
+        const storedUserJson = await secureStorage.getItem('auth_user');
 
         const accessToken = storedAccessToken?.trim() || '';
         const refreshToken = storedRefreshToken?.trim() || '';
@@ -58,6 +59,15 @@ export const RootNavigator: React.FC = () => {
 
         setAuthToken(accessToken);
 
+        // Restore cached user session immediately to prevent flicker/logout on refresh
+        if (storedUserJson && isActive) {
+          try {
+            const cachedUser = JSON.parse(storedUserJson);
+            await useAuthStore.getState().login(cachedUser, accessToken, refreshToken || null);
+          } catch (e) {}
+        }
+
+        // Try syncing fresh profile data from backend
         try {
           const meRes = await apiClient.get(ENDPOINTS.AUTH.ME);
           const user = meRes.data?.data?.user || null;
@@ -66,12 +76,19 @@ export const RootNavigator: React.FC = () => {
           }
           return;
         } catch (meErr: any) {
-          if (!refreshToken) {
-            if (isActive) await useAuthStore.getState().logout();
+          // If explicit 401 Unauthorized, token is invalid -> try refresh token or logout
+          if (meErr?.response?.status === 401) {
+            if (!refreshToken) {
+              if (isActive) await useAuthStore.getState().logout();
+              return;
+            }
+          } else {
+            // Network error or server offline: Keep cached session, do not log out
             return;
           }
         }
 
+        // Attempt Refresh Token
         try {
           const refreshRes = await apiClient.post(ENDPOINTS.AUTH.REFRESH_TOKEN, { refresh_token: refreshToken });
           const newAccessToken = refreshRes.data?.data?.accessToken || '';
@@ -88,11 +105,11 @@ export const RootNavigator: React.FC = () => {
           const user = meRes.data?.data?.user || null;
           if (user && isActive) {
             await useAuthStore.getState().login(user, newAccessToken, newRefreshToken);
-          } else if (isActive) {
-            await useAuthStore.getState().logout();
           }
         } catch (refreshErr: any) {
-          if (isActive) await useAuthStore.getState().logout();
+          if (refreshErr?.response?.status === 401) {
+            if (isActive) await useAuthStore.getState().logout();
+          }
         }
       } finally {
         if (isActive) setIsBooting(false);

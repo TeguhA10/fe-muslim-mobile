@@ -222,30 +222,45 @@ export const NotificationScreen: React.FC<NotificationScreenProps> = ({
       <IslamicTexture opacity={0.05} tint={isDarkMode ? 'gold' : 'light'} absolute />
 
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        {onBack && (
-          <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
-            <ArrowLeft size={22} color={colors.text} />
-          </TouchableOpacity>
-        )}
-
-        <View style={styles.headerTitleContainer}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Notifikasi</Text>
-          {unreadCount > 0 && (
-            <View style={styles.countBadge}>
-              <Text style={styles.countBadgeText}>{unreadCount}</Text>
-            </View>
+      <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}>
+        <View style={styles.headerLeftGroup}>
+          {onBack && (
+            <TouchableOpacity
+              onPress={onBack}
+              style={[
+                styles.backButton,
+                { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' },
+              ]}
+              activeOpacity={0.7}
+            >
+              <ArrowLeft size={20} color={colors.text} />
+            </TouchableOpacity>
           )}
+
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Notifikasi</Text>
+            {unreadCount > 0 && (
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>{unreadCount}</Text>
+              </View>
+            )}
+          </View>
         </View>
 
         <View style={styles.headerRightActions}>
           {unreadCount > 0 && (
             <TouchableOpacity
               onPress={markAllAsRead}
-              style={[styles.readAllButton, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}
+              style={[
+                styles.readAllButton,
+                {
+                  backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5',
+                  borderColor: isDarkMode ? 'rgba(16, 185, 129, 0.3)' : '#A7F3D0',
+                },
+              ]}
               activeOpacity={0.7}
             >
-              <CheckCheck size={16} color={colors.primary} />
+              <CheckCheck size={14} color={colors.primary} />
               <Text style={[styles.readAllText, { color: colors.primary }]}>Dibaca</Text>
             </TouchableOpacity>
           )}
@@ -253,7 +268,13 @@ export const NotificationScreen: React.FC<NotificationScreenProps> = ({
           {notifications.length > 0 && (
             <TouchableOpacity
               onPress={handleConfirmDeleteAll}
-              style={[styles.deleteAllButton, { backgroundColor: isDarkMode ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2' }]}
+              style={[
+                styles.deleteAllButton,
+                {
+                  backgroundColor: isDarkMode ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2',
+                  borderColor: isDarkMode ? 'rgba(239, 68, 68, 0.3)' : '#FCA5A5',
+                },
+              ]}
               activeOpacity={0.7}
             >
               <Trash2 size={15} color="#EF4444" />
@@ -311,17 +332,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    height: 56,
+    minHeight: 60,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+    paddingVertical: 10,
     borderBottomWidth: 1,
   },
+  headerLeftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
   backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -332,13 +360,16 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   countBadge: {
     backgroundColor: '#EF4444',
-    paddingHorizontal: 7,
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   countBadgeText: {
     color: '#FFFFFF',
@@ -348,26 +379,28 @@ const styles = StyleSheet.create({
   headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   readAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingVertical: 7,
+    borderRadius: 18,
+    borderWidth: 1,
   },
   readAllText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   deleteAllButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
   },
   listContent: {
     padding: 16,

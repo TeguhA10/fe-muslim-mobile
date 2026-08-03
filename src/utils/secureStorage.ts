@@ -4,7 +4,6 @@ let SecureStore: any = null;
 try {
   SecureStore = require('expo-secure-store');
 } catch (e) {
-  // Fallback to AsyncStorage if expo-secure-store native module is unavailable in Expo Go
   SecureStore = null;
 }
 
@@ -13,23 +12,24 @@ export const secureStorage = {
     try {
       if (SecureStore && typeof SecureStore.setItemAsync === 'function') {
         await SecureStore.setItemAsync(key, value);
-      } else {
-        await AsyncStorage.setItem(key, value);
       }
-    } catch (error) {
+    } catch (error) {}
+    try {
       await AsyncStorage.setItem(key, value);
-    }
+    } catch (error) {}
   },
 
   async getItem(key: string): Promise<string | null> {
     try {
       if (SecureStore && typeof SecureStore.getItemAsync === 'function') {
         const val = await SecureStore.getItemAsync(key);
-        if (val !== null) return val;
+        if (val) return val;
       }
+    } catch (error) {}
+    try {
       return await AsyncStorage.getItem(key);
     } catch (error) {
-      return await AsyncStorage.getItem(key);
+      return null;
     }
   },
 
@@ -38,9 +38,9 @@ export const secureStorage = {
       if (SecureStore && typeof SecureStore.deleteItemAsync === 'function') {
         await SecureStore.deleteItemAsync(key);
       }
+    } catch (error) {}
+    try {
       await AsyncStorage.removeItem(key);
-    } catch (error) {
-      await AsyncStorage.removeItem(key);
-    }
+    } catch (error) {}
   },
 };

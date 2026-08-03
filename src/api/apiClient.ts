@@ -8,10 +8,13 @@ const getBaseUrl = () => {
     if (Platform.OS === 'android' && envUrl.includes('localhost')) {
       return envUrl.replace('localhost', '10.0.2.2');
     }
+    if (Platform.OS === 'web' && envUrl.includes('10.0.2.2')) {
+      return envUrl.replace('10.0.2.2', 'localhost');
+    }
     return envUrl;
   }
 
-  // On Android Emulator, '10.0.2.2' maps to the host PC's localhost.
+  // Fallbacks
   if (Platform.OS === 'android') {
     return 'http://10.0.2.2:5000/api/v1';
   }
