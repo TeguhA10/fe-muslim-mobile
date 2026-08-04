@@ -6,22 +6,32 @@
 [![Zustand](https://img.shields.io/badge/Zustand-v5-brown.svg)](https://github.com/pmndrs/zustand)
 [![License](https://img.shields.io/badge/License-ISC-yellow.svg)](#license)
 
-Aplikasi Mobile Muslim modern berbasis **React Native** & **Expo SDK 53** (TypeScript) dengan arsitektur *Domain-Driven Feature-Based*. Aplikasi ini menyediakan fitur lengkap meliputi Jadwal Sholat presisi, Kompas Kiblat 3D/Sensors, Peta Masjid Terdekat (OpenStreetMap + Leaflet), Social Feed Komunitas Muslim, Kalender Hijriah & Notifikasi Push Adzan Real-Time.
+Aplikasi Mobile Muslim modern berbasis **React Native** & **Expo SDK 53** (TypeScript) dengan arsitektur *Domain-Driven Feature-Based*. Aplikasi ini menyediakan fitur lengkap meliputi Jadwal Sholat presisi, Native Android Foreground Service 24/7, Android Home Screen Widget (Geometris Islami), Kompas Kiblat 3D/Sensors, Peta Masjid Terdekat (OpenStreetMap + Leaflet), Social Feed Komunitas Muslim, Kalender Hijriah & Notifikasi Push Adzan Real-Time.
 
-Didesain dengan keandalan sesi tinggi (*Offline Session Persistence*) dan optimasi performa tinggi untuk kelancaran scrolling 60 FPS di seluruh perangkat HP Android dan iOS.
+Didesain dengan keandalan sesi tinggi (*Offline Session Resilience*) dan optimasi performa tinggi untuk kelancaran scrolling 60 FPS di seluruh perangkat HP Android dan iOS.
 
 ---
 
 ## ✨ Fitur-Fitur Utama & Keunggulan UI/UX
 
-- 🕌 **Jadwal Sholat Real-time & Countdowns**:
-  - Perhitungan waktu sholat berdasarkan koordinat lokasi GPS secara otomatis dengan penanganan zona waktu lokal presisi.
-  - Tampilan *countdown* (hitung mundur) menuju waktu sholat berikutnya secara real-time.
-  - Kalibrasi tanggal lokal otomatis yang mencegah pergeseran zona waktu saat pergantian hari.
+- 🕌 **Native Android 24/7 Foreground Service & Ongoing Countdown**:
+  - Dibuat dengan modul **Native Kotlin** (`PrayerForegroundService.kt`) di tingkat OS Android (`startForeground`).
+  - Menampilkan *countdown real-time* (hitung mundur jam:menit:detik) yang **tetap berjalan 24/7 di status bar HP meskipun aplikasi ditutup / di-clear dari recent apps**.
+  - Kompatibel penuh dengan keamanan **Android 14 (API 34)** (`FOREGROUND_SERVICE_SPECIAL_USE`).
+  - Dilengkapi `BootReceiver` yang otomatis menyalakan kembali countdown saat HP di-restart.
 
-- 🔒 **Sesi & Keamanan Kredensial Terenkripsi**:
+- 📲 **Widget Layar Utama HP (Android Home Screen AppWidget)**:
+  - Menggunakan `react-native-android-widget` dengan pola geometris Bintang 8 & Heksagon Islami (`IslamicTexture`).
+  - Menampilkan estimasi waktu sholat berikutnya, lokasi kota (`📍 Jakarta`), dan hitung mundur menit yang halus tanpa berkedip.
+  - Diselaraskan secara otomatis oleh Native Service Kotlin setiap 60 detik.
+
+- ⚡ **Direct Intent Permission Launchers**:
+  - Peluncuran dialog izin sistem resmi **1-Tap "Abaikan Penghemat Baterai"** (`ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`).
+  - Navigasi langsung ke **Halaman Setelan Notifikasi App** (`APP_NOTIFICATION_SETTINGS`) dan **Izin Tampilkan di Atas App Lain** (`MANAGE_OVERLAY_PERMISSION`).
+
+- 🔒 **Sesi & Keamanan Kredensial Terenkripsi (RFC 6585)**:
   - Penyimpanan token autentikasi memanfaatkan **Android KeyStore & iOS Keychain** (`expo-secure-store`).
-  - Pemulihan sesi tangguh (*Session Resilience*) yang mencegah logout tidak disengaja saat aplikasi di-refresh atau koneksi terputus.
+  - *Interceptor Axios* dengan proteksi RFC 6585: HANYA melakukan `logout()` otomatis jika refresh token mengembalikan HTTP `401 Unauthorized`. Kesalahan jaringan atau HTTP `429 Rate Limit` tidak akan pernah merusak sesi login pengguna.
 
 - 🕋 **Kompas Arah Kiblat (Qibla Finder)**:
   - Penentuan arah Kiblat presisi menggunakan kalkulasi *Great-Circle Distance / Spherical Trigonometry*.
@@ -36,8 +46,8 @@ Didesain dengan keandalan sesi tinggi (*Offline Session Persistence*) dan optima
   - Dukungan **Direct Presigned Image Upload** langsung dari HP ke Cloudinary CDN.
   - Komentar Bertingkat (*Nested Reply*) dan modal zoom viewer gambar (*ImageViewerModal*).
 
-- 🔔 **Notifikasi Push & Top Bar Redesign**:
-  - Desain Top Bar Notifikasi modern dan proporsional dengan indikator badge belum dibaca.
+- 🔔 **Notifikasi Push & Alarm Adzan**:
+  - Peringatan suara adzan tepat waktu dan notifikasi pengingat sebelum adzan (5, 10, 15 menit sebelum).
   - Notifikasi push real-time via **Firebase Cloud Messaging (FCM)** & **Socket.IO**.
 
 ---
@@ -46,15 +56,16 @@ Didesain dengan keandalan sesi tinggi (*Offline Session Persistence*) dan optima
 
 | Kategori | Teknologi / Library |
 | :--- | :--- |
-| **Framework & Engine** | React Native (Expo SDK 53) |
-| **Bahasa Pemrograman** | TypeScript |
+| **Framework & Engine** | React Native (Expo SDK 53), Native Android Kotlin Modules |
+| **Bahasa Pemrograman** | TypeScript, Kotlin (Android Native) |
+| **Widget HP** | `react-native-android-widget` (AppWidget RemoteViews) |
 | **Navigasi** | React Navigation v7 (Bottom Tabs & Native Stack) |
 | **State Management** | Zustand (Global App State), TanStack React Query v5 |
 | **Secure Storage** | `expo-secure-store` (Android KeyStore / iOS Keychain) |
 | **Peta & Lokasi** | Leaflet JS via `react-native-webview`, OpenStreetMap, `expo-location` |
-| **Sensors & Device Services**| `expo-sensors` (Magnetometer), `expo-notifications`, `expo-av` |
+| **Sensors & Device Services**| `expo-sensors` (Magnetometer), `expo-notifications`, `expo-intent-launcher` |
 | **Icons & Design System** | Lucide React Native, Custom Emerald & Gold Design Token |
-| **HTTP & Realtime Client** | Axios dengan Interceptor Token & Socket.IO Client |
+| **HTTP & Realtime Client** | Axios dengan Interceptor Token RFC 6585 & Socket.IO Client |
 
 ---
 
@@ -62,10 +73,13 @@ Didesain dengan keandalan sesi tinggi (*Offline Session Persistence*) dan optima
 
 ```
 fe-muslim-mobile/
+├── android/                    # Android Native Source (Kotlin ForegroundService, Widget, Manifest)
+│   └── app/src/main/java/com/muslimapp/mobile/
+│       └── service/            # PrayerForegroundService.kt, PrayerForegroundModule.kt, BootReceiver.kt
 ├── assets/                     # Asset Gambar, Logo, Sound Adzan, & Splash Screen
 ├── src/
 │   ├── api/                    # Configuration Axios Client & API Endpoints
-│   ├── components/             # Reusable Global UI (Button, Card, Input, ScreenWrapper, ImageViewerModal)
+│   ├── components/             # Reusable Global UI (Button, Card, Input, MandatoryPermissionGateModal)
 │   ├── constants/              # Design Tokens (Emerald & Gold Palette, Typography, Storage Keys)
 │   ├── features/               # Feature Modules (Domain-Driven)
 │   │   ├── adzan/              # Jadwal Sholat, Countdown, Checkbox Riwayat 7 Hari
@@ -77,9 +91,9 @@ fe-muslim-mobile/
 │   │   └── profile/            # Screen Profil User, Edit Profile, Settings & Trash Posts
 │   ├── hooks/                  # Custom Hooks (useAuth, useLocation, useQibla, useGuestGuard)
 │   ├── navigation/             # MainTabNavigator (Bottom Tabs) & RootNavigator (Stack Navigation)
-│   ├── services/               # Device Services (Location, FCM Push, Socket.IO Client)
+│   ├── services/               # Device Services (Location, Native Prayer Service, Background Permission)
 │   ├── store/                  # Global State Zustand (Auth Store, Settings Store, Theme Store)
-│   ├── types/                  # TypeScript Data Models
+│   ├── widgets/                # AppWidget RemoteViews UI (PrayerWidgetTaskHandler.tsx)
 │   └── utils/                  # Secure Storage Wrapper, Trigonometri Kiblat, Date Formatters
 ├── .env.local                  # Environment Config Mode Local
 ├── .env.staging                # Environment Config Mode Staging
@@ -127,9 +141,9 @@ EXPO_PUBLIC_API_BASE_URL=http://localhost:5000/api/v1
    npm install
    ```
 
-3. **Jalankan Server Development Expo**:
+3. **Jalankan App versi Native (Android)**:
    ```bash
-   npm start
+   npm run android
    ```
 
 4. **Buka di Perangkat**:
@@ -159,7 +173,7 @@ eas build --platform android --profile production
 | Skrip | Deskripsi |
 | :--- | :--- |
 | `npm start` | Menjalankan Metro Bundler Expo |
-| `npm run android` | Menjalankan di Emulator Android |
+| `npm run android` | Kompilasi & Jalankan di Emulator/HP Android Native |
 | `npm run ios` | Menjalankan di Simulator iOS |
 | `npm run web` | Menjalankan versi Web Expo |
 | `npm run lint` | Menjalankan pengecekan ESLint & TypeScript |
