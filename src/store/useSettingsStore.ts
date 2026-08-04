@@ -91,7 +91,7 @@ export const useSettingsStore = create<SettingsStoreState>((set, get) => ({
   language: 'id',
   reminderOffsetMinutes: 10,
   notifAdzanEnabled: true,
-  stickyNotifEnabled: false,
+  stickyNotifEnabled: true,
 
   setCalculationMethod: async (method) => {
     set({ calculationMethod: method });

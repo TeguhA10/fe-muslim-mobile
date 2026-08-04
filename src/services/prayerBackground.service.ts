@@ -1,7 +1,13 @@
+import React from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as TaskManager from 'expo-task-manager';
+import * as BackgroundFetch from 'expo-background-fetch';
+import { requestWidgetUpdate } from 'react-native-android-widget';
 import { NotificationService } from './notification.service';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { PrayerWidgetUi, getPrayerWidgetData } from '../widgets/PrayerWidgetTaskHandler';
+import { NativePrayerService } from './nativePrayerService';
 
 export interface SimplePrayerTime {
   name: string;
@@ -9,6 +15,24 @@ export interface SimplePrayerTime {
 }
 
 const PRAYER_SCHEDULE_CACHE_KEY = 'prayer_bg_schedule_cache';
+const PRAYER_BG_TASK = 'BACKGROUND_PRAYER_TASK';
+
+// Define Headless Background Task that persists after app termination
+TaskManager.defineTask(PRAYER_BG_TASK, async () => {
+  try {
+    PrayerBackgroundService.runCountdownCycle();
+    return BackgroundFetch.BackgroundFetchResult.NewData;
+  } catch (error) {
+    return BackgroundFetch.BackgroundFetchResult.Failed;
+  }
+});
+
+// Register background task
+BackgroundFetch.registerTaskAsync(PRAYER_BG_TASK, {
+  minimumInterval: 60 * 15, // 15 minutes
+  stopOnTerminate: false, // Continue after app close!
+  startOnBoot: true, // Start on phone reboot!
+}).catch(() => {});
 
 export class PrayerBackgroundService {
   private static timerId: NodeJS.Timeout | null = null;
@@ -16,6 +40,7 @@ export class PrayerBackgroundService {
   private static currentCity: string = 'Jakarta';
   private static appState: AppStateStatus = AppState.currentState;
   private static isInitialized = false;
+  private static lastWidgetUpdate = 0;
 
   /**
    * Initialize global Prayer Background Service
@@ -26,6 +51,13 @@ export class PrayerBackgroundService {
 
     // Restore cached prayer schedule if available
     await this.restoreCachedSchedule();
+
+    const isStickyEnabled = useSettingsStore.getState().stickyNotifEnabled;
+    if (isStickyEnabled && this.prayerTimes && this.prayerTimes.length > 0) {
+      NativePrayerService.startNativeService(this.prayerTimes, this.currentCity);
+    } else if (!isStickyEnabled) {
+      NativePrayerService.stopNativeService();
+    }
 
     // Listen to App state changes (Foreground / Background / Inactive)
     AppState.addEventListener('change', (nextAppState) => {
@@ -38,6 +70,32 @@ export class PrayerBackgroundService {
 
     // Start 1-second timer cycle
     this.startLoop();
+  }
+
+  /**
+   * Directly enable or disable Native Foreground Service toggle
+   */
+  static async enableNativeService(enabled: boolean) {
+    if (enabled) {
+      if (!this.prayerTimes || this.prayerTimes.length === 0) {
+        await this.restoreCachedSchedule();
+      }
+
+      if (!this.prayerTimes || this.prayerTimes.length === 0) {
+        this.prayerTimes = [
+          { name: 'Subuh', time: '04:42' },
+          { name: 'Dzuhur', time: '12:02' },
+          { name: 'Ashar', time: '15:24' },
+          { name: 'Maghrib', time: '18:01' },
+          { name: 'Isya', time: '19:12' },
+        ];
+      }
+
+      NativePrayerService.startNativeService(this.prayerTimes, this.currentCity);
+    } else {
+      NativePrayerService.stopNativeService();
+      NotificationService.dismissOngoingNotification();
+    }
   }
 
   /**
@@ -54,6 +112,18 @@ export class PrayerBackgroundService {
         JSON.stringify({ prayers, city, timestamp: Date.now() })
       );
     } catch (e) {}
+
+    const { reminderOffsetMinutes, notifAdzanEnabled, stickyNotifEnabled } = useSettingsStore.getState();
+
+    // Schedule exact adzan & pre-adzan offset alarm notifications
+    NotificationService.scheduleAdzanReminders(prayers, reminderOffsetMinutes, notifAdzanEnabled);
+
+    if (stickyNotifEnabled) {
+      // Trigger Native Android Foreground Service for 24/7 background countdown
+      NativePrayerService.startNativeService(prayers, city);
+    } else {
+      NativePrayerService.stopNativeService();
+    }
 
     // Trigger immediate countdown update
     this.runCountdownCycle();
@@ -98,16 +168,28 @@ export class PrayerBackgroundService {
   /**
    * Execute 1 cycle of countdown calculation & update sticky notification
    */
-  static runCountdownCycle() {
+  static async runCountdownCycle() {
     const isStickyEnabled = useSettingsStore.getState().stickyNotifEnabled;
 
     if (!isStickyEnabled) {
       NotificationService.dismissOngoingNotification();
+      NativePrayerService.stopNativeService();
       return;
     }
 
+    if (!this.prayerTimes || this.prayerTimes.length === 0) {
+      await this.restoreCachedSchedule();
+    }
 
-    if (!this.prayerTimes || this.prayerTimes.length === 0) return;
+    if (!this.prayerTimes || this.prayerTimes.length === 0) {
+      this.prayerTimes = [
+        { name: 'Subuh', time: '04:42' },
+        { name: 'Dzuhur', time: '12:02' },
+        { name: 'Ashar', time: '15:24' },
+        { name: 'Maghrib', time: '18:01' },
+        { name: 'Isya', time: '19:12' },
+      ];
+    }
 
     const now = new Date();
     let upcoming: { name: string; time: string; targetDate: Date } | null = null;
@@ -158,6 +240,18 @@ export class PrayerBackgroundService {
         countdownStr,
         this.currentCity
       );
+
+      // Update Android launcher home screen widget once per minute
+      if (secs === 0 || !this.lastWidgetUpdate || Date.now() - this.lastWidgetUpdate > 60000) {
+        this.lastWidgetUpdate = Date.now();
+        getPrayerWidgetData().then((widgetData) => {
+          requestWidgetUpdate({
+            widgetName: 'PrayerWidget',
+            renderWidget: () => React.createElement(PrayerWidgetUi, widgetData as any),
+            widgetNotFound: () => {},
+          }).catch(() => {});
+        }).catch(() => {});
+      }
     }
   }
 }

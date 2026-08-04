@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { apiClient } from '../api/apiClient';
 import { ENDPOINTS } from '../api/endpoints';
 import { useNotificationStore } from '../store/useNotificationStore';
+import { useAuthStore } from '../store/useAuthStore';
 
 const ONGOING_NOTIF_ID = 'ongoing_prayer_time_notif';
 const PRAYER_CHANNEL_ID = 'prayer-ongoing-channel';
@@ -78,14 +79,30 @@ export class NotificationService {
     if (this.listenersAttached) return;
 
     // 1. Triggered when notification is received in foreground
-    Notifications.addNotificationReceivedListener(() => {
+    Notifications.addNotificationReceivedListener((notification) => {
+      const notifData = notification?.request?.content?.data;
+      const notifId = notification?.request?.identifier;
+      if (notifId === ONGOING_NOTIF_ID || notifData?.type === 'ongoing_prayer') {
+        return;
+      }
+
+      if (!useAuthStore.getState().isAuthenticated) return;
+
       console.log('[NotificationService] Real-time push notification received');
       useNotificationStore.getState().fetchUnreadCount();
       useNotificationStore.getState().fetchNotifications(1, true);
     });
 
     // 2. Triggered when user taps on push notification in status bar tray
-    Notifications.addNotificationResponseReceivedListener(() => {
+    Notifications.addNotificationResponseReceivedListener((response) => {
+      const notifData = response?.notification?.request?.content?.data;
+      const notifId = response?.notification?.request?.identifier;
+      if (notifId === ONGOING_NOTIF_ID || notifData?.type === 'ongoing_prayer') {
+        return;
+      }
+
+      if (!useAuthStore.getState().isAuthenticated) return;
+
       console.log('[NotificationService] Status bar notification tapped');
       useNotificationStore.getState().fetchUnreadCount();
       useNotificationStore.getState().fetchNotifications(1, true);
@@ -99,6 +116,8 @@ export class NotificationService {
    */
   static async registerPushToken(): Promise<string | null> {
     try {
+      if (!useAuthStore.getState().isAuthenticated) return null;
+
       const hasPermission = await this.init();
       if (!hasPermission) return null;
 
@@ -128,24 +147,80 @@ export class NotificationService {
     cityName: string
   ) {
     try {
-      const title = `🕌 Menuju Sholat ${prayerName}`;
-      const body = `Waktu: ${prayerTime} • Sisa Waktu: ${countdown}`;
-
-      await Notifications.scheduleNotificationAsync({
-        identifier: ONGOING_NOTIF_ID,
-        content: {
-          title,
-          body,
-          data: { type: 'ongoing_prayer' },
-          sound: false,
-          priority: Notifications.AndroidNotificationPriority.HIGH,
-          sticky: true,
-          autoDismiss: false,
-        },
-        trigger: null, // Present immediately!
-      });
+      // Dismiss legacy duplicate Expo JS notification if present
+      await Notifications.dismissNotificationAsync(ONGOING_NOTIF_ID).catch(() => {});
     } catch (e) {
       console.log('[NotificationService] Error updating ongoing notification:', e);
+    }
+  }
+
+  /**
+   * Schedule pre-adzan and adzan alarm notifications based on user's reminder offset
+   */
+  static async scheduleAdzanReminders(
+    prayers: { name: string; time: string }[],
+    offsetMinutes: number = 10,
+    adzanNotifEnabled: boolean = true
+  ) {
+    if (!adzanNotifEnabled || !prayers || prayers.length === 0) return;
+
+    try {
+      // Clear previously scheduled adzan alarm notifications
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      for (const notif of scheduled) {
+        if (notif.content.data?.type === 'adzan_alarm' || notif.content.data?.type === 'pre_adzan_alarm') {
+          await Notifications.cancelScheduledNotificationAsync(notif.identifier).catch(() => {});
+        }
+      }
+
+      const now = new Date();
+
+      for (const p of prayers) {
+        if (!p.time) continue;
+        const [h, m] = p.time.split(':').map(Number);
+
+        // 1. Exact Adzan Time Notification
+        const adzanTime = new Date();
+        adzanTime.setHours(h, m, 0, 0);
+
+        if (adzanTime.getTime() > now.getTime()) {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `🕌 Waktu Sholat ${p.name} Telah Tiba!`,
+              body: `Saatnya menunaikan ibadah sholat ${p.name} (${p.time}).`,
+              sound: true,
+              priority: Notifications.AndroidNotificationPriority.MAX,
+              data: { type: 'adzan_alarm', prayerName: p.name },
+            },
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.DATE,
+              date: adzanTime,
+            },
+          }).catch(() => {});
+        }
+
+        // 2. Pre-Adzan Reminder Notification (e.g. 5, 10, 15 minutes before)
+        if (offsetMinutes > 0) {
+          const preAdzanTime = new Date(adzanTime.getTime() - offsetMinutes * 60 * 1000);
+          if (preAdzanTime.getTime() > now.getTime()) {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: `⏰ ${offsetMinutes} Menit Menuju Sholat ${p.name}`,
+                body: `Persiapkan diri Anda untuk menunaikan sholat ${p.name} pada pukul ${p.time}.`,
+                sound: true,
+                priority: Notifications.AndroidNotificationPriority.HIGH,
+                data: { type: 'pre_adzan_alarm', prayerName: p.name },
+              },
+              trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.DATE,
+                date: preAdzanTime,
+              },
+            }).catch(() => {});
+          }
+        }
+      }
+    } catch (e) {
+      console.log('[NotificationService] Error scheduling adzan reminders:', e);
     }
   }
 
@@ -154,7 +229,7 @@ export class NotificationService {
    */
   static async dismissOngoingNotification() {
     try {
-      await Notifications.dismissNotificationAsync(ONGOING_NOTIF_ID);
+      await Notifications.dismissNotificationAsync(ONGOING_NOTIF_ID).catch(() => {});
     } catch (e) {}
   }
 }

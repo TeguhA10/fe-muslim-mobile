@@ -51,7 +51,11 @@ apiClient.interceptors.response.use(
     console.log('[apiClient] Request Error:', error.message, '| Code:', error.code, '| URL:', (originalRequest?.baseURL || '') + (originalRequest?.url || ''));
 
     // Handle 401 Unauthorized with Automatic Refresh Token retry
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !originalRequest.url?.includes(ENDPOINTS.AUTH.LOGIN) && !originalRequest.url?.includes(ENDPOINTS.AUTH.REFRESH_TOKEN)) {
+    const isAuthEndpoint = originalRequest.url?.includes(ENDPOINTS.AUTH.LOGIN) ||
+                           originalRequest.url?.includes(ENDPOINTS.AUTH.REFRESH_TOKEN) ||
+                           originalRequest.url?.includes(ENDPOINTS.AUTH.LOGOUT);
+
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
       try {
         const storedRefreshToken = await secureStorage.getItem('auth_refresh_token');
@@ -72,9 +76,12 @@ apiClient.interceptors.response.use(
             return apiClient(originalRequest);
           }
         }
-      } catch (refreshErr) {
-        console.log('[apiClient] Refresh token failed or expired. Invalidating session.');
-        useAuthStore.getState().logout();
+      } catch (refreshErr: any) {
+        console.log('[apiClient] Refresh token request failed:', refreshErr?.message || refreshErr);
+        if (refreshErr.response?.status === 401) {
+          console.log('[apiClient] Refresh token expired or revoked. Invalidating session.');
+          useAuthStore.getState().logout();
+        }
       }
     }
 

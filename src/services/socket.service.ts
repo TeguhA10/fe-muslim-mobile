@@ -2,6 +2,7 @@
 import { io, Socket } from 'socket.io-client/dist/socket.io.js';
 import { Platform } from 'react-native';
 import { useNotificationStore } from '../store/useNotificationStore';
+import { useAuthStore } from '../store/useAuthStore';
 
 const getSocketUrl = () => {
   const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -52,9 +53,11 @@ class SocketService {
     // Listen for real-time notification events!
     this.socket.on('notification:new', (notificationData: any) => {
       console.log('[SocketService] Received real-time notification:', notificationData);
-      // Immediately fetch unread count & refresh active notification list
-      useNotificationStore.getState().fetchUnreadCount();
-      useNotificationStore.getState().fetchNotifications(1, true);
+      const isAuth = useAuthStore.getState().isAuthenticated;
+      if (isAuth) {
+        useNotificationStore.getState().fetchUnreadCount();
+        useNotificationStore.getState().fetchNotifications(1, true);
+      }
     });
 
     this.socket.on('disconnect', () => {

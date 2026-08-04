@@ -42,6 +42,23 @@
       "@react-native-google-signin/google-signin",
       "@react-native-community/datetimepicker",
       [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "PrayerWidget",
+              "label": "Jadwal Salat & Adzan",
+              "minWidth": "320dp",
+              "minHeight": "120dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "description": "Widget jadwal salat 5 waktu dan hitung mundur adzan real-time",
+              "previewImage": "./assets/logo2_muslim_app.png"
+            }
+          ]
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {

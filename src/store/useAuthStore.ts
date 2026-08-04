@@ -64,15 +64,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isGuest: true, pendingRegisterRedirect: false });
   },
   logout: async () => {
-    // 1. Call backend API to clear push token & invalidate tokens
-    try {
-      await apiClient.post(ENDPOINTS.AUTH.LOGOUT);
-    } catch {}
-
-    // 2. Disconnect Socket.IO session
+    // 1. Disconnect Socket.IO session immediately
     socketService.disconnect();
 
-    // 3. Clear in-app notification state
+    // 2. Clear in-app notification state
     useNotificationStore.setState({
       notifications: [],
       unreadCount: 0,
@@ -80,7 +75,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       hasMore: false,
     });
 
-    // 4. Clear auth store and secure storage
+    // 3. Clear auth store and headers immediately
     setAuthToken(null);
     set({
       user: null,
@@ -90,6 +85,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       isGuest: false,
       pendingRegisterRedirect: false,
     });
+
+    // 4. Call backend API to invalidate token (best effort)
+    try {
+      await apiClient.post(ENDPOINTS.AUTH.LOGOUT);
+    } catch {}
+
+    // 5. Clear secure storage
     try {
       await secureStorage.removeItem(AUTH_STORAGE_KEYS.accessToken);
       await secureStorage.removeItem(AUTH_STORAGE_KEYS.refreshToken);

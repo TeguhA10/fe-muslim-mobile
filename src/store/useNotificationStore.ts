@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { apiClient } from '../api/apiClient';
 import { ENDPOINTS } from '../api/endpoints';
+import { useAuthStore } from './useAuthStore';
 
 export type NotificationType =
   | 'LIKE_POST'
@@ -49,6 +50,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   hasMore: true,
 
   fetchUnreadCount: async () => {
+    if (!useAuthStore.getState().isAuthenticated) {
+      set({ unreadCount: 0 });
+      return 0;
+    }
+
     try {
       const response = await apiClient.get(ENDPOINTS.NOTIFICATIONS.UNREAD_COUNT);
       const unreadCount = response.data?.data?.unreadCount || 0;
@@ -60,6 +66,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   fetchNotifications: async (page = 1, refresh = false) => {
+    if (!useAuthStore.getState().isAuthenticated) {
+      set({ notifications: [], unreadCount: 0, isLoading: false });
+      return;
+    }
+
     try {
       if (!refresh && page === 1) {
         set({ isLoading: true });
@@ -104,6 +115,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       };
     });
 
+    if (!useAuthStore.getState().isAuthenticated) return;
+
     try {
       await apiClient.patch(ENDPOINTS.NOTIFICATIONS.MARK_READ(id));
     } catch {}
@@ -115,6 +128,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       notifications: state.notifications.map((n) => ({ ...n, is_read: true })),
       unreadCount: 0,
     }));
+
+    if (!useAuthStore.getState().isAuthenticated) return;
 
     try {
       await apiClient.patch(ENDPOINTS.NOTIFICATIONS.READ_ALL);
@@ -133,6 +148,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       };
     });
 
+    if (!useAuthStore.getState().isAuthenticated) return;
+
     try {
       await apiClient.delete(ENDPOINTS.NOTIFICATIONS.DELETE_SINGLE(id));
     } catch {}
@@ -145,6 +162,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       unreadCount: 0,
       total: 0,
     });
+
+    if (!useAuthStore.getState().isAuthenticated) return;
 
     try {
       await apiClient.delete(ENDPOINTS.NOTIFICATIONS.DELETE_ALL);

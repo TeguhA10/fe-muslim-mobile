@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { BatteryCharging, ShieldAlert, CheckCircle2, ExternalLink } from 'lucide-react-native';
 import { useThemeStore } from '../../store/useThemeStore';
+import { BackgroundPermissionService } from '../../services/backgroundPermission.service';
 
 interface BackgroundPermissionModalProps {
   visible: boolean;
@@ -24,14 +25,9 @@ export const BackgroundPermissionModal: React.FC<BackgroundPermissionModalProps>
 
   const handleOpenBatterySettings = async () => {
     try {
-      if (Platform.OS === 'android') {
-        // Open App Info / Settings directly
-        await Linking.openSettings();
-      } else {
-        await Linking.openSettings();
-      }
+      await BackgroundPermissionService.requestIgnoreBatteryOptimizations();
     } catch (e) {
-      console.log('[BackgroundPermission] Error opening settings:', e);
+      BackgroundPermissionService.openAppSettings();
     }
   };
 

@@ -11,6 +11,7 @@ import {
 import { useThemeStore } from '../../store/useThemeStore';
 import { SPACING } from '../../constants/theme';
 import { IslamicTexture } from './IslamicTexture';
+import { NetworkAlertBanner } from '../common/NetworkAlertBanner';
 
 interface ScreenWrapperProps {
   children: React.ReactNode;
@@ -61,6 +62,8 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
         backgroundColor={currentBg}
         translucent
       />
+
+      <NetworkAlertBanner />
 
       {/* Islamic geometric texture fills entire background */}
       <IslamicTexture
