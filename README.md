@@ -52,7 +52,7 @@ Didesain dengan keandalan sesi tinggi (*Offline Session Resilience*) dan optimas
 
 ---
 
-## 🛠️ Tech Stack & Library
+## 🛠️ Tech Stack & Teknologi
 
 | Kategori | Teknologi / Library |
 | :--- | :--- |
@@ -66,6 +66,18 @@ Didesain dengan keandalan sesi tinggi (*Offline Session Resilience*) dan optimas
 | **Sensors & Device Services**| `expo-sensors` (Magnetometer), `expo-notifications`, `expo-intent-launcher` |
 | **Icons & Design System** | Lucide React Native, Custom Emerald & Gold Design Token |
 | **HTTP & Realtime Client** | Axios dengan Interceptor Token RFC 6585 & Socket.IO Client |
+
+---
+
+## 🌐 Integrasi API Pihak Ketiga (Third-Party APIs)
+
+| Layanan API | Integration Point | Fungsi & Penggunaan |
+| :--- | :--- | :--- |
+| **Aladhan Prayer Times API** | Server Backend Proxy (`/prayer/times`) | Sumber data kalkulasi waktu sholat 5 waktu & penanggalan Hijriah presisi berdasarkan koordinat lokasi GPS. |
+| **OpenStreetMap & Leaflet Tile API** | `react-native-webview` (Leaflet) | Peta peta geospasial lokasi masjid terdekat tanpa biaya API Key Google Maps. |
+| **Cloudinary Media API** | `GET /posts/upload-signature` | *Direct Presigned Image Upload* dari kamera HP langsung ke CDN Cloudinary. |
+| **Firebase Push Notifications (FCM)** | Expo Notifications SDK | Penerimaan notifikasi push adzan & pengumuman komunitas di HP. |
+| **Socket.IO Realtime API** | `SocketService.ts` | Koneksi WebSocket real-time untuk pembaruan unread counter notifikasi secara instan. |
 
 ---
 
