@@ -47,8 +47,7 @@ Didesain dengan keandalan sesi tinggi (*Offline Session Resilience*) dan optimas
   - Komentar Bertingkat (*Nested Reply*) dan modal zoom viewer gambar (*ImageViewerModal*).
 
 - 🔔 **Notifikasi Push & Alarm Adzan**:
-  - Peringatan suara adzan tepat waktu dan notifikasi pengingat sebelum adzan (5, 10, 15 menit sebelum).
-  - Notifikasi push real-time via **Firebase Cloud Messaging (FCM)** & **Socket.IO**.
+  - Notifikasi pengingat & alarm adzan via **Native Android Foreground Service** & **Socket.IO Realtime**.
 
 ---
 
@@ -76,7 +75,7 @@ Didesain dengan keandalan sesi tinggi (*Offline Session Resilience*) dan optimas
 | **Aladhan Prayer Times API** | Server Backend Proxy (`/prayer/times`) | Sumber data kalkulasi waktu sholat 5 waktu & penanggalan Hijriah presisi berdasarkan koordinat lokasi GPS. |
 | **OpenStreetMap & Leaflet Tile API** | `react-native-webview` (Leaflet) | Peta peta geospasial lokasi masjid terdekat tanpa biaya API Key Google Maps. |
 | **Cloudinary Media API** | `GET /posts/upload-signature` | *Direct Presigned Image Upload* dari kamera HP langsung ke CDN Cloudinary. |
-| **Firebase Push Notifications (FCM)** | Expo Notifications SDK | Penerimaan notifikasi push adzan & pengumuman komunitas di HP. |
+| **Google OAuth Sign-In API** | `@react-native-google-signin/google-signin` | Autentikasi pendaftaran & login cepat menggunakan akun Google di HP. |
 | **Socket.IO Realtime API** | `SocketService.ts` | Koneksi WebSocket real-time untuk pembaruan unread counter notifikasi secara instan. |
 
 ---
