@@ -25,6 +25,7 @@
     "expo-build-properties": "~0.13.3",
     "expo-crypto": "~14.0.2",
     "expo-dev-client": "~5.0.20",
+    "expo-file-system": "~18.0.12",
     "expo-font": "~13.0.3",
     "expo-image-picker": "~16.0.6",
     "expo-location": "~18.0.4",

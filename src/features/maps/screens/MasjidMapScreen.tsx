@@ -56,6 +56,9 @@ export const MasjidMapScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
   useEffect(() => {
     if (!navigation) return;
     const unsubscribe = navigation.addListener('tabPress', () => {
+      const isFocused = navigation.isFocused();
+      if (!isFocused) return;
+
       setSelectedDetailMasjid(null);
       setSelectedRouteMosque(null);
       setIsLocationModalOpen(false);

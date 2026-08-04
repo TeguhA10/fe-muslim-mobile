@@ -1,5 +1,8 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
+import { secureStorage } from '../utils/secureStorage';
+import { ENDPOINTS } from './endpoints';
+import { useAuthStore } from '../store/useAuthStore';
 
 const getBaseUrl = () => {
   const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -43,8 +46,38 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    console.log('[apiClient] Request Error:', error.message, '| Code:', error.code, '| URL:', (error.config?.baseURL || '') + (error.config?.url || ''));
+  async (error) => {
+    const originalRequest = error.config;
+    console.log('[apiClient] Request Error:', error.message, '| Code:', error.code, '| URL:', (originalRequest?.baseURL || '') + (originalRequest?.url || ''));
+
+    // Handle 401 Unauthorized with Automatic Refresh Token retry
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !originalRequest.url?.includes(ENDPOINTS.AUTH.LOGIN) && !originalRequest.url?.includes(ENDPOINTS.AUTH.REFRESH_TOKEN)) {
+      originalRequest._retry = true;
+      try {
+        const storedRefreshToken = await secureStorage.getItem('auth_refresh_token');
+        if (storedRefreshToken) {
+          console.log('[apiClient] Attempting token refresh via /auth/refresh-token...');
+          const refreshRes = await axios.post(`${getBaseUrl()}${ENDPOINTS.AUTH.REFRESH_TOKEN}`, {
+            refreshToken: storedRefreshToken,
+          });
+
+          const newAccessToken = refreshRes.data?.data?.token;
+          const newRefreshToken = refreshRes.data?.data?.refreshToken || storedRefreshToken;
+
+          if (newAccessToken) {
+            setAuthToken(newAccessToken);
+            useAuthStore.getState().setTokens(newAccessToken, newRefreshToken);
+            originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+            console.log('[apiClient] Token refresh successful. Retrying original request.');
+            return apiClient(originalRequest);
+          }
+        }
+      } catch (refreshErr) {
+        console.log('[apiClient] Refresh token failed or expired. Invalidating session.');
+        useAuthStore.getState().logout();
+      }
+    }
+
     return Promise.reject(error);
   }
 );

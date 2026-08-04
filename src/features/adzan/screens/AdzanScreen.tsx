@@ -55,6 +55,9 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   useEffect(() => {
     if (!navigation) return;
     const unsubscribe = navigation.addListener('tabPress', () => {
+      const isFocused = navigation.isFocused();
+      if (!isFocused) return;
+
       setIsLocationModalOpen(false);
       setIsGuestModalOpen(false);
       setIsOffsetModalOpen(false);

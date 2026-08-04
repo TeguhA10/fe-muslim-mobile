@@ -22,6 +22,9 @@ export const IbadahScreen: React.FC<{ navigation?: any }> = ({ navigation }) => 
   React.useEffect(() => {
     if (!navigation) return;
     const unsubscribe = navigation.addListener('tabPress', () => {
+      const isFocused = navigation.isFocused();
+      if (!isFocused) return;
+
       setShowQiblaCompass(false);
       setShowHijriYearCalendar(false);
       setIsLocationModalOpen(false);

@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 
 import * as ImagePicker from 'expo-image-picker';
-import { useFocusEffect } from '@react-navigation/native';
 import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
 import { Card } from '../../../components/common/Card';
 import { CustomAlert } from '../../../components/common/CustomAlert';
@@ -126,32 +125,6 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
   const [showTrashPosts, setShowTrashPosts] = useState<boolean>(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!navigation) return;
-    const unsubscribe = navigation.addListener('tabPress', () => {
-      setShowMyPosts(false);
-      setShowTrashPosts(false);
-      setShowEditProfile(false);
-      setShowChangePassword(false);
-      setShowPrivacyPolicy(false);
-      setSelectedUserId(null);
-    });
-    return unsubscribe;
-  }, [navigation]);
-
-  // Custom Alert Modal for Logout
-  const [alertConfig, setAlertConfig] = useState<{
-    visible: boolean;
-    type: 'success' | 'warning' | 'info' | 'error';
-    title: string;
-    message: string;
-  }>({
-    visible: false,
-    type: 'warning',
-    title: '',
-    message: '',
-  });
-
   // Fetch real profile and database stats summary
   const fetchProfileData = useCallback(async (isPullToRefresh = false) => {
     try {
@@ -176,15 +149,41 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
   }, []);
 
   useEffect(() => {
+    if (!navigation) return;
+    const unsubscribe = navigation.addListener('tabPress', () => {
+      const isFocused = navigation.isFocused();
+      if (!isFocused) return;
+
+      if (showMyPosts || showTrashPosts || showEditProfile || showChangePassword || showPrivacyPolicy || selectedUserId) {
+        setShowMyPosts(false);
+        setShowTrashPosts(false);
+        setShowEditProfile(false);
+        setShowChangePassword(false);
+        setShowPrivacyPolicy(false);
+        setSelectedUserId(null);
+      } else {
+        fetchProfileData(true);
+      }
+    });
+    return unsubscribe;
+  }, [navigation, showMyPosts, showTrashPosts, showEditProfile, showChangePassword, showPrivacyPolicy, selectedUserId, fetchProfileData]);
+
+  // Custom Alert Modal for Logout
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    type: 'success' | 'warning' | 'info' | 'error';
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    type: 'warning',
+    title: '',
+    message: '',
+  });
+
+  useEffect(() => {
     fetchProfileData();
   }, [fetchProfileData]);
-
-  // Refresh profile data automatically when user navigates back to Profile tab
-  useFocusEffect(
-    useCallback(() => {
-      fetchProfileData(true);
-    }, [fetchProfileData])
-  );
 
   // Update User Settings in Database
   const updateSettingsInDb = async (newSettings: any) => {
