@@ -2,7 +2,7 @@
   "expo": {
     "name": "Muslim App",
     "slug": "muslim-app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/logo2_muslim_app.png",
     "userInterfaceStyle": "automatic",
@@ -34,7 +34,6 @@
         "REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
         "FOREGROUND_SERVICE"
       ]
-
     },
     "web": {
       "favicon": "./assets/logo2_muslim_app.png"

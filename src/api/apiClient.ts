@@ -30,13 +30,24 @@ export const apiClient = axios.create({
   },
 });
 
+console.log('[apiClient] Initialized baseURL:', getBaseUrl());
+
 // Auto-remove Content-Type header for FormData so React Native generates proper multipart boundary
 apiClient.interceptors.request.use((config) => {
+  console.log('[apiClient] Sending Request:', config.method?.toUpperCase(), (config.baseURL || '') + (config.url || ''));
   if (config.data && (config.data instanceof FormData || (config.data as any)._parts)) {
     delete config.headers['Content-Type'];
   }
   return config;
 });
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.log('[apiClient] Request Error:', error.message, '| Code:', error.code, '| URL:', (error.config?.baseURL || '') + (error.config?.url || ''));
+    return Promise.reject(error);
+  }
+);
 
 export const setAuthToken = (token: string | null) => {
   if (token) {

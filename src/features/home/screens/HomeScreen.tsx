@@ -403,8 +403,10 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
                 cldData.append('folder', folder || 'muslim_app/posts');
 
                 const cldRes = await axios.post(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, cldData, {
-                  headers: { 'Content-Type': 'multipart/form-data' },
-                  transformRequest: [(data) => data],
+                  transformRequest: [(data, headers) => {
+                    if (headers) delete headers['Content-Type'];
+                    return data;
+                  }],
                   timeout: 60000,
                 });
 
