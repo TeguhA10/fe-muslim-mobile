@@ -14,6 +14,7 @@ import { apiClient } from '../../../api/apiClient';
 import { ENDPOINTS } from '../../../api/endpoints';
 import { NotificationService } from '../../../services/notification.service';
 import { PrayerBackgroundService } from '../../../services/prayerBackground.service';
+import { NativePrayerService } from '../../../services/nativePrayerService';
 import { BackgroundPermissionModal } from '../../../components/common/BackgroundPermissionModal';
 import { Clock, MapPin, Bell, CheckCircle2, Circle, ChevronRight, Calendar as CalendarIcon, X, Check, BatteryCharging } from 'lucide-react-native';
 
@@ -44,9 +45,10 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
 
   const handleToggleStickyNotif = (value: boolean) => {
     setStickyNotifEnabled(value);
-    if (value && Platform.OS === 'android') {
-      setIsBgPermissionModalOpen(true);
-    }
+    PrayerBackgroundService.enableNativeService(value);
+    // if (value && Platform.OS === 'android') {
+    //   setIsBgPermissionModalOpen(true);
+    // }
   };
 
 
@@ -455,10 +457,6 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
                   style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 }}
                   onPress={() => setIsBgPermissionModalOpen(true)}
                 >
-                  <BatteryCharging size={13} color={colors.primary} />
-                  <Text style={{ fontSize: 11, color: colors.primary, fontWeight: 'bold', textDecorationLine: 'underline' }}>
-                    Panduan Bebas Hemat Baterai HP
-                  </Text>
                 </TouchableOpacity>
               )}
             </View>
