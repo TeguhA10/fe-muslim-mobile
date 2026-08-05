@@ -9,7 +9,7 @@ import { GuestGuardModal } from '../../../components/common/GuestGuardModal';
 import { SPACING } from '../../../constants/theme';
 import { useLocationStore } from '../../../store/useLocationStore';
 import { useThemeStore } from '../../../store/useThemeStore';
-import { useSettingsStore, REMINDER_OFFSETS } from '../../../store/useSettingsStore';
+import { useSettingsStore, REMINDER_OFFSETS, ADZAN_SOUND_OPTIONS, PrayerSoundSettings } from '../../../store/useSettingsStore';
 import { useGuestGuard } from '../../../hooks/useGuestGuard';
 import { apiClient } from '../../../api/apiClient';
 import { ENDPOINTS } from '../../../api/endpoints';
@@ -17,7 +17,8 @@ import { NotificationService } from '../../../services/notification.service';
 import { PrayerBackgroundService } from '../../../services/prayerBackground.service';
 import { NativePrayerService } from '../../../services/nativePrayerService';
 import { BackgroundPermissionModal } from '../../../components/common/BackgroundPermissionModal';
-import { Clock, MapPin, Bell, CheckCircle2, Circle, ChevronRight, Calendar as CalendarIcon, X, Check, BatteryCharging } from 'lucide-react-native';
+import { AdzanSoundPickerModal } from '../components/AdzanSoundPickerModal';
+import { Clock, MapPin, Bell, CheckCircle2, Circle, ChevronRight, Calendar as CalendarIcon, X, Check, BatteryCharging, Volume2 } from 'lucide-react-native';
 
 interface DayItem {
   dateStr: string;
@@ -34,15 +35,18 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
     reminderOffsetMinutes,
     notifAdzanEnabled,
     stickyNotifEnabled,
+    prayerSounds,
     setReminderOffsetMinutes,
     setNotifAdzanEnabled,
     setStickyNotifEnabled,
+    setPrayerSound,
   } = useSettingsStore();
   const { guardAction, requestRegister } = useGuestGuard();
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [isOffsetModalOpen, setIsOffsetModalOpen] = useState(false);
   const [isBgPermissionModalOpen, setIsBgPermissionModalOpen] = useState(false);
+  const [activeSoundModalPrayer, setActiveSoundModalPrayer] = useState<keyof PrayerSoundSettings | null>(null);
 
   const handleToggleStickyNotif = async (value: boolean) => {
     await setStickyNotifEnabled(value);
@@ -449,7 +453,13 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
               <Text style={[styles.prayerTime, { color: colors.text }, item.active && { color: colors.primary }]}>
                 {item.time}
               </Text>
-              <Bell color={item.active ? colors.accent : colors.textMuted} size={18} />
+              <TouchableOpacity
+                style={{ padding: 4, marginLeft: 6, flexDirection: 'row', alignItems: 'center' }}
+                onPress={() => setActiveSoundModalPrayer(item.name as keyof PrayerSoundSettings)}
+                activeOpacity={0.7}
+              >
+                <Volume2 color={item.active ? colors.accent : colors.primary} size={18} />
+              </TouchableOpacity>
             </View>
           </Card>
         ))}
@@ -494,6 +504,19 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
           </View>
         </Card>
       </ScrollView>
+
+      {/* Adzan Sound Picker Modal */}
+      <AdzanSoundPickerModal
+        visible={!!activeSoundModalPrayer}
+        prayerName={activeSoundModalPrayer}
+        currentSoundId={activeSoundModalPrayer ? (prayerSounds[activeSoundModalPrayer] || 'adzan_makkah') : 'adzan_makkah'}
+        onClose={() => setActiveSoundModalPrayer(null)}
+        onSelectSound={async (pName, soundId) => {
+          await setPrayerSound(pName, soundId);
+          // Re-schedule adzan reminders with updated sounds
+          NotificationService.scheduleAdzanReminders(prayerTimes, reminderOffsetMinutes, notifAdzanEnabled);
+        }}
+      />
 
       {/* Background Permission Modal for Battery Optimization Exemption */}
       <BackgroundPermissionModal

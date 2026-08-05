@@ -9,13 +9,17 @@ import { useThemeStore } from '../../../store/useThemeStore';
 import { useLocationStore } from '../../../store/useLocationStore';
 import { QiblaScreen } from './QiblaScreen';
 import { HijriCalendarYearScreen } from './HijriCalendarYearScreen';
-import { Compass, Calendar, Sparkles, ChevronRight, MapPin } from 'lucide-react-native';
+import { QuranHomeScreen } from '../../quran/screens/QuranHomeScreen';
+import { QuranDetailScreen } from '../../quran/screens/QuranDetailScreen';
+import { Compass, Calendar, Sparkles, ChevronRight, MapPin, BookOpen } from 'lucide-react-native';
 
 export const IbadahScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const { colors, isDarkMode } = useThemeStore();
   const { city } = useLocationStore();
   const [showQiblaCompass, setShowQiblaCompass] = useState<boolean>(false);
   const [showHijriYearCalendar, setShowHijriYearCalendar] = useState<boolean>(false);
+  const [showQuranList, setShowQuranList] = useState<boolean>(false);
+  const [selectedSurahInfo, setSelectedSurahInfo] = useState<{ surahNumber: number; ayahNumber?: number } | null>(null);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState<boolean>(false);
 
   const scrollViewRef = React.useRef<ScrollView>(null);
@@ -26,6 +30,14 @@ export const IbadahScreen: React.FC<{ navigation?: any }> = ({ navigation }) => 
       const onBackPress = () => {
         if (isLocationModalOpen) {
           setIsLocationModalOpen(false);
+          return true;
+        }
+        if (selectedSurahInfo) {
+          setSelectedSurahInfo(null);
+          return true;
+        }
+        if (showQuranList) {
+          setShowQuranList(false);
           return true;
         }
         if (showQiblaCompass) {
@@ -41,7 +53,7 @@ export const IbadahScreen: React.FC<{ navigation?: any }> = ({ navigation }) => 
 
       const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => subscription.remove();
-    }, [isLocationModalOpen, showQiblaCompass, showHijriYearCalendar])
+    }, [isLocationModalOpen, selectedSurahInfo, showQuranList, showQiblaCompass, showHijriYearCalendar])
   );
 
   React.useEffect(() => {
@@ -50,6 +62,8 @@ export const IbadahScreen: React.FC<{ navigation?: any }> = ({ navigation }) => 
       const isFocused = navigation.isFocused();
       if (!isFocused) return;
 
+      setSelectedSurahInfo(null);
+      setShowQuranList(false);
       setShowQiblaCompass(false);
       setShowHijriYearCalendar(false);
       setIsLocationModalOpen(false);
@@ -64,6 +78,27 @@ export const IbadahScreen: React.FC<{ navigation?: any }> = ({ navigation }) => 
     { name: 'Awal Ramadan 1448 H', date: '01 Ramadan 1448 H', gregorian: '08 Februari 2027', daysLeft: 191 },
   ];
 
+  if (selectedSurahInfo) {
+    return (
+      <QuranDetailScreen
+        surahNumber={selectedSurahInfo.surahNumber}
+        initialAyah={selectedSurahInfo.ayahNumber}
+        onBack={() => setSelectedSurahInfo(null)}
+      />
+    );
+  }
+
+  if (showQuranList) {
+    return (
+      <QuranHomeScreen
+        onSelectSurah={(surahNumber, ayahNumber) =>
+          setSelectedSurahInfo({ surahNumber, ayahNumber })
+        }
+        onBack={() => setShowQuranList(false)}
+      />
+    );
+  }
+
   if (showQiblaCompass) {
     return <QiblaScreen onBack={() => setShowQiblaCompass(false)} />;
   }
@@ -75,11 +110,30 @@ export const IbadahScreen: React.FC<{ navigation?: any }> = ({ navigation }) => 
   return (
     <ScreenWrapper style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false}>
-        <Text style={[styles.title, { color: colors.text }]}>Modul Ibadah</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Modul Ibadah & Al-Qur'an</Text>
+
+        {/* Al-Qur'an Digital Featured Banner */}
+        <TouchableOpacity activeOpacity={0.88} onPress={() => setShowQuranList(true)}>
+          <Card style={[styles.quranCardBanner, { backgroundColor: colors.primary }]}>
+            <View style={styles.quranHeaderRow}>
+              <View style={styles.quranHeaderLeft}>
+                <BookOpen color="#FDE047" size={26} />
+                <View>
+                  <Text style={styles.quranTitle}>Al-Qur'an Digital 30 Juz</Text>
+                  <Text style={styles.quranSub}>114 Surah • Arab Uthmani & Audio Qori</Text>
+                </View>
+              </View>
+              <View style={styles.openQuranBtn}>
+                <Text style={styles.openQuranBtnText}>Buka Al-Qur'an</Text>
+                <ChevronRight color="#FDE047" size={16} />
+              </View>
+            </View>
+          </Card>
+        </TouchableOpacity>
 
         {/* Hijri Calendar Banner */}
         <TouchableOpacity activeOpacity={0.85} onPress={() => setShowHijriYearCalendar(true)}>
-          <Card style={[styles.calendarBanner, { backgroundColor: colors.primary }]}>
+          <Card style={[styles.calendarBanner, { backgroundColor: isDarkMode ? '#1E293B' : '#047857' }]}>
             <View style={styles.calendarHeaderRow}>
               <View style={styles.calendarHeaderLeft}>
                 <Calendar color="#F59E0B" size={24} />
@@ -171,6 +225,46 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: SPACING.md,
+  },
+  quranCardBanner: {
+    padding: SPACING.md,
+    borderRadius: 20,
+    marginBottom: SPACING.md,
+  },
+  quranHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  quranHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  quranTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  quranSub: {
+    fontSize: 11,
+    color: '#FDE047',
+    marginTop: 2,
+  },
+  openQuranBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 4,
+  },
+  openQuranBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   calendarBanner: {
     padding: SPACING.lg,

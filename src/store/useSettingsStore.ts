@@ -71,17 +71,50 @@ const TRANSLATIONS: Partial<Record<LanguageId, Record<string, string>>> = {
   },
 };
 
+export interface PrayerSoundSettings {
+  Subuh: string;
+  Dzuhur: string;
+  Ashar: string;
+  Maghrib: string;
+  Isya: string;
+}
+
+export interface AdzanSoundOption {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export const DEFAULT_PRAYER_SOUNDS: PrayerSoundSettings = {
+  Subuh: 'adzan_subuh_makkah',
+  Dzuhur: 'adzan_makkah',
+  Ashar: 'adzan_makkah',
+  Maghrib: 'adzan_madinah',
+  Isya: 'adzan_makkah',
+};
+
+export const ADZAN_SOUND_OPTIONS: AdzanSoundOption[] = [
+  { id: 'adzan_makkah', name: 'Adzan Makkah (Maghrib)', description: 'Kumandang adzan khas Maghrib Masjidil Haram Makkah' },
+  { id: 'adzan_madinah', name: 'Adzan Madinah', description: 'Kumandang adzan khas Masjid Nabawi Madinah' },
+  { id: 'adzan_subuh_makkah', name: 'Adzan Subuh Misyari Rasyid', description: 'Kumandang adzan Subuh Makkah oleh Sheikh Misyari Rasyid' },
+  { id: 'adzan_soft', name: 'Adzan Merdu Mehdi Yarrahi', description: 'Lantunan adzan merdu & syahdu oleh Mehdi Yarrahi' },
+  { id: 'chime_short', name: 'Ringtone Pengingat Singkat', description: 'Nada bip / pengingat singkat 5 detik' },
+  { id: 'silent', name: 'Hening (Tanpa Suara)', description: 'Hanya notifikasi visual & getar' },
+];
+
 interface SettingsStoreState {
   calculationMethod: CalculationMethodId;
   language: LanguageId;
   reminderOffsetMinutes: number;
   notifAdzanEnabled: boolean;
   stickyNotifEnabled: boolean;
+  prayerSounds: PrayerSoundSettings;
   setCalculationMethod: (method: CalculationMethodId) => Promise<void>;
   setLanguage: (lang: LanguageId) => Promise<void>;
   setReminderOffsetMinutes: (minutes: number) => Promise<void>;
   setNotifAdzanEnabled: (enabled: boolean) => Promise<void>;
   setStickyNotifEnabled: (enabled: boolean) => Promise<void>;
+  setPrayerSound: (prayerName: keyof PrayerSoundSettings, soundId: string) => Promise<void>;
   loadSettings: () => Promise<void>;
   t: (key: string) => string;
 }
@@ -92,6 +125,7 @@ export const useSettingsStore = create<SettingsStoreState>((set, get) => ({
   reminderOffsetMinutes: 10,
   notifAdzanEnabled: true,
   stickyNotifEnabled: false,
+  prayerSounds: DEFAULT_PRAYER_SOUNDS,
 
   setCalculationMethod: async (method) => {
     set({ calculationMethod: method });
@@ -100,6 +134,7 @@ export const useSettingsStore = create<SettingsStoreState>((set, get) => ({
       language: get().language,
       reminderOffsetMinutes: get().reminderOffsetMinutes,
       stickyNotifEnabled: get().stickyNotifEnabled,
+      prayerSounds: get().prayerSounds,
     };
     AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings)).catch(() => { });
     try {
@@ -114,6 +149,7 @@ export const useSettingsStore = create<SettingsStoreState>((set, get) => ({
       language: lang,
       reminderOffsetMinutes: get().reminderOffsetMinutes,
       stickyNotifEnabled: get().stickyNotifEnabled,
+      prayerSounds: get().prayerSounds,
     };
     AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings)).catch(() => { });
     try {
@@ -128,12 +164,14 @@ export const useSettingsStore = create<SettingsStoreState>((set, get) => ({
       language: get().language,
       reminderOffsetMinutes: minutes,
       stickyNotifEnabled: get().stickyNotifEnabled,
+      prayerSounds: get().prayerSounds,
     };
     AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings)).catch(() => { });
     try {
       await apiClient.post(ENDPOINTS.AUTH.SETTINGS, { reminder_offset_minutes: minutes });
     } catch (e) { }
   },
+
   setNotifAdzanEnabled: async (enabled) => {
     set({ notifAdzanEnabled: enabled });
     const currentSettings = {
@@ -142,6 +180,7 @@ export const useSettingsStore = create<SettingsStoreState>((set, get) => ({
       reminderOffsetMinutes: get().reminderOffsetMinutes,
       notifAdzanEnabled: enabled,
       stickyNotifEnabled: get().stickyNotifEnabled,
+      prayerSounds: get().prayerSounds,
     };
     AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings)).catch(() => { });
     try {
@@ -156,10 +195,28 @@ export const useSettingsStore = create<SettingsStoreState>((set, get) => ({
       language: get().language,
       reminderOffsetMinutes: get().reminderOffsetMinutes,
       stickyNotifEnabled: enabled,
+      prayerSounds: get().prayerSounds,
     };
     AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings)).catch(() => { });
     try {
       await apiClient.post(ENDPOINTS.AUTH.SETTINGS, { sticky_notif_enabled: enabled });
+    } catch (e) { }
+  },
+
+  setPrayerSound: async (prayerName, soundId) => {
+    const updatedSounds = { ...get().prayerSounds, [prayerName]: soundId };
+    set({ prayerSounds: updatedSounds });
+    const currentSettings = {
+      calculationMethod: get().calculationMethod,
+      language: get().language,
+      reminderOffsetMinutes: get().reminderOffsetMinutes,
+      notifAdzanEnabled: get().notifAdzanEnabled,
+      stickyNotifEnabled: get().stickyNotifEnabled,
+      prayerSounds: updatedSounds,
+    };
+    AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(currentSettings)).catch(() => { });
+    try {
+      await apiClient.post(ENDPOINTS.AUTH.SETTINGS, { prayer_sounds: updatedSounds });
     } catch (e) { }
   },
 
@@ -172,6 +229,8 @@ export const useSettingsStore = create<SettingsStoreState>((set, get) => ({
         if (parsed.language) set({ language: parsed.language });
         if (typeof parsed.reminderOffsetMinutes === 'number') set({ reminderOffsetMinutes: parsed.reminderOffsetMinutes });
         if (typeof parsed.stickyNotifEnabled === 'boolean') set({ stickyNotifEnabled: parsed.stickyNotifEnabled });
+        if (typeof parsed.notifAdzanEnabled === 'boolean') set({ notifAdzanEnabled: parsed.notifAdzanEnabled });
+        if (parsed.prayerSounds) set({ prayerSounds: { ...DEFAULT_PRAYER_SOUNDS, ...parsed.prayerSounds } });
       }
     } catch { }
   },

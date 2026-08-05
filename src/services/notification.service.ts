@@ -5,6 +5,7 @@ import { apiClient } from '../api/apiClient';
 import { ENDPOINTS } from '../api/endpoints';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { useSettingsStore } from '../store/useSettingsStore';
 
 const ONGOING_NOTIF_ID = 'ongoing_prayer_time_notif';
 const PRAYER_CHANNEL_ID = 'prayer-ongoing-channel';
@@ -188,6 +189,9 @@ export class NotificationService {
   /**
    * Schedule pre-adzan and adzan alarm notifications based on user's reminder offset
    */
+  /**
+   * Schedule pre-adzan and adzan alarm notifications based on user's reminder offset & selected prayer sounds
+   */
   static async scheduleAdzanReminders(
     prayers: { name: string; time: string }[],
     offsetMinutes: number = 10,
@@ -196,6 +200,8 @@ export class NotificationService {
     if (!adzanNotifEnabled || !prayers || prayers.length === 0) return;
 
     try {
+      const { prayerSounds } = useSettingsStore.getState();
+
       // Clear previously scheduled adzan alarm notifications
       const scheduled = await Notifications.getAllScheduledNotificationsAsync();
       for (const notif of scheduled) {
@@ -209,19 +215,22 @@ export class NotificationService {
       for (const p of prayers) {
         if (!p.time) continue;
         const [h, m] = p.time.split(':').map(Number);
+        const pSoundKey = p.name as keyof typeof prayerSounds;
+        const soundChoice = (prayerSounds && prayerSounds[pSoundKey]) || 'adzan_makkah';
 
         // 1. Exact Adzan Time Notification
         const adzanTime = new Date();
         adzanTime.setHours(h, m, 0, 0);
 
         if (adzanTime.getTime() > now.getTime()) {
+          const isSilent = soundChoice === 'silent';
           await Notifications.scheduleNotificationAsync({
             content: {
               title: `🕌 Waktu Sholat ${p.name} Telah Tiba!`,
               body: `Saatnya menunaikan ibadah sholat ${p.name} (${p.time}).`,
-              sound: true,
+              sound: isSilent ? undefined : 'default',
               priority: Notifications.AndroidNotificationPriority.MAX,
-              data: { type: 'adzan_alarm', prayerName: p.name },
+              data: { type: 'adzan_alarm', prayerName: p.name, soundChoice },
             },
             trigger: {
               type: Notifications.SchedulableTriggerInputTypes.DATE,
@@ -238,7 +247,7 @@ export class NotificationService {
               content: {
                 title: `⏰ ${offsetMinutes} Menit Menuju Sholat ${p.name}`,
                 body: `Persiapkan diri Anda untuk menunaikan sholat ${p.name} pada pukul ${p.time}.`,
-                sound: true,
+                sound: 'default',
                 priority: Notifications.AndroidNotificationPriority.HIGH,
                 data: { type: 'pre_adzan_alarm', prayerName: p.name },
               },
