@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Platform,
   AppState,
+  ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Location from 'expo-location';
@@ -22,6 +24,7 @@ export const MandatoryPermissionGateModal: React.FC<MandatoryPermissionGateModal
   onPermissionGranted,
 }) => {
   const { colors, isDarkMode } = useThemeStore();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [isVisible, setIsVisible] = useState<boolean>(false);
 
   const [permissionsStatus, setPermissionsStatus] = useState<{
@@ -84,15 +87,10 @@ export const MandatoryPermissionGateModal: React.FC<MandatoryPermissionGateModal
     };
   }, []);
 
-  const handleOpenSystemSettings = () => {
-    BackgroundPermissionService.openAppSettings();
-  };
-
-  const handleOpenBatterySettings = () => {
-    BackgroundPermissionService.requestIgnoreBatteryOptimizations();
-  };
-
   if (!isVisible) return null;
+
+  const maxModalWidth = Math.min(420, screenWidth * 0.92);
+  const maxModalHeight = Math.min(680, screenHeight * 0.88);
 
   return (
     <Modal
@@ -105,81 +103,88 @@ export const MandatoryPermissionGateModal: React.FC<MandatoryPermissionGateModal
       }}
     >
       <View style={styles.overlay}>
-        <View style={[styles.container, { backgroundColor: colors.surface }]}>
-          <View style={styles.headerIconBox}>
-            <ShieldAlert size={36} color="#DC2626" />
-          </View>
-
-          <Text style={[styles.title, { color: colors.text }]}>
-            Izin Wajib Diperlukan
-          </Text>
-
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-            Untuk menggunakan Muslim App, Anda wajib memberikan akses berikut agar jadwal sholat, adzan, dan widget HP aktif sempurna.
-          </Text>
-
-          {/* Permissions Checklist Status Box */}
-          <View style={[styles.statusBox, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC', borderColor: colors.border }]}>
-            {/* 1. Notification Permission */}
-            <TouchableOpacity style={styles.statusRow} onPress={() => BackgroundPermissionService.openNotificationSettings()} activeOpacity={0.7}>
-              <Bell size={18} color={permissionsStatus.notification ? '#166534' : '#DC2626'} />
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <Text style={[styles.statusTitle, { color: colors.text }]}>Notifikasi Adzan & Sholat</Text>
-                <Text style={styles.statusDesc}>Tap untuk langsung ke Setting Notifikasi</Text>
-              </View>
-              {permissionsStatus.notification ? (
-                <CheckCircle2 size={20} color="#166534" />
-              ) : (
-                <ExternalLink size={18} color="#DC2626" />
-              )}
-            </TouchableOpacity>
-
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-            {/* 2. Location Permission */}
-            <TouchableOpacity style={styles.statusRow} onPress={() => BackgroundPermissionService.openAppSettings()} activeOpacity={0.7}>
-              <MapPin size={18} color={permissionsStatus.location ? '#166534' : '#DC2626'} />
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <Text style={[styles.statusTitle, { color: colors.text }]}>Lokasi Presisi Kota</Text>
-                <Text style={styles.statusDesc}>Tap untuk langsung ke Izin Lokasi</Text>
-              </View>
-              {permissionsStatus.location ? (
-                <CheckCircle2 size={20} color="#166534" />
-              ) : (
-                <ExternalLink size={18} color="#DC2626" />
-              )}
-            </TouchableOpacity>
-
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-            {/* 3. Battery Optimization (Direct System Dialog Prompt) */}
-            <TouchableOpacity style={styles.statusRow} onPress={() => BackgroundPermissionService.requestIgnoreBatteryOptimizations()} activeOpacity={0.7}>
-              <BatteryCharging size={18} color={colors.primary} />
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <Text style={[styles.statusTitle, { color: colors.text }]}>Bebas Hemat Baterai (Unrestricted)</Text>
-                <Text style={styles.statusDesc}>Tap untuk munculkan dialog prompt "IZINKAN"</Text>
-              </View>
-              <ExternalLink size={18} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Primary Action Button: Triggers Direct Battery Optimization Dialog Prompt */}
-          <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-            onPress={() => BackgroundPermissionService.requestIgnoreBatteryOptimizations()}
-            activeOpacity={0.85}
+        <View style={[styles.container, { backgroundColor: colors.surface, width: maxModalWidth, maxHeight: maxModalHeight }]}>
+          <ScrollView
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ alignItems: 'center', paddingBottom: 8 }}
+            style={{ width: '100%' }}
           >
-            <ExternalLink size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-            <Text style={styles.primaryButtonText}>Matikan Hemat Baterai (Unrestricted)</Text>
-          </TouchableOpacity>
+            <View style={styles.headerIconBox}>
+              <ShieldAlert size={34} color="#DC2626" />
+            </View>
 
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => BackgroundPermissionService.openNotificationSettings()}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.retryText, { color: colors.primary }]}>Buka Setting Notifikasi & App Info</Text>
-          </TouchableOpacity>
+            <Text style={[styles.title, { color: colors.text }]}>
+              Izin Wajib Diperlukan
+            </Text>
+
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+              Untuk menggunakan Muslim App, Anda wajib memberikan akses berikut agar jadwal sholat, adzan, dan widget HP aktif sempurna.
+            </Text>
+
+            {/* Permissions Checklist Status Box */}
+            <View style={[styles.statusBox, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC', borderColor: colors.border }]}>
+              {/* 1. Notification Permission */}
+              <TouchableOpacity style={styles.statusRow} onPress={() => BackgroundPermissionService.openNotificationSettings()} activeOpacity={0.7}>
+                <Bell size={18} color={permissionsStatus.notification ? '#166534' : '#DC2626'} />
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={[styles.statusTitle, { color: colors.text }]}>Notifikasi Adzan & Sholat</Text>
+                  <Text style={styles.statusDesc}>Tap untuk langsung ke Setting Notifikasi</Text>
+                </View>
+                {permissionsStatus.notification ? (
+                  <CheckCircle2 size={20} color="#166534" />
+                ) : (
+                  <ExternalLink size={18} color="#DC2626" />
+                )}
+              </TouchableOpacity>
+
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+              {/* 2. Location Permission */}
+              <TouchableOpacity style={styles.statusRow} onPress={() => BackgroundPermissionService.openAppSettings()} activeOpacity={0.7}>
+                <MapPin size={18} color={permissionsStatus.location ? '#166534' : '#DC2626'} />
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={[styles.statusTitle, { color: colors.text }]}>Lokasi Presisi Kota</Text>
+                  <Text style={styles.statusDesc}>Tap untuk langsung ke Izin Lokasi</Text>
+                </View>
+                {permissionsStatus.location ? (
+                  <CheckCircle2 size={20} color="#166534" />
+                ) : (
+                  <ExternalLink size={18} color="#DC2626" />
+                )}
+              </TouchableOpacity>
+
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+              {/* 3. Battery Optimization (Direct System Dialog Prompt) */}
+              <TouchableOpacity style={styles.statusRow} onPress={() => BackgroundPermissionService.requestIgnoreBatteryOptimizations()} activeOpacity={0.7}>
+                <BatteryCharging size={18} color={colors.primary} />
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={[styles.statusTitle, { color: colors.text }]}>Bebas Hemat Baterai (Unrestricted)</Text>
+                  <Text style={styles.statusDesc}>Tap untuk munculkan dialog prompt "IZINKAN"</Text>
+                </View>
+                <ExternalLink size={18} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Primary Action Button */}
+            <TouchableOpacity
+              style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+              onPress={() => BackgroundPermissionService.requestIgnoreBatteryOptimizations()}
+              activeOpacity={0.85}
+            >
+              <ExternalLink size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <Text style={styles.primaryButtonText}>Matikan Hemat Baterai (Unrestricted)</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => BackgroundPermissionService.openNotificationSettings()}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.retryText, { color: colors.primary }]}>Buka Setting Notifikasi & App Info</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -192,28 +197,27 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 16,
     zIndex: 9999,
   },
   container: {
-    width: '100%',
-    maxWidth: 380,
     borderRadius: 20,
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     alignItems: 'center',
     elevation: 12,
   },
   headerIconBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: '#FEE2E2',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   title: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 6,
@@ -222,14 +226,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     lineHeight: 18,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   statusBox: {
     width: '100%',
     borderRadius: 14,
-    padding: 14,
+    padding: 12,
     borderWidth: 1,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   statusRow: {
     flexDirection: 'row',
@@ -247,23 +251,23 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    marginVertical: 10,
+    marginVertical: 8,
   },
   primaryButton: {
     width: '100%',
-    height: 48,
-    borderRadius: 14,
+    height: 46,
+    borderRadius: 12,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   retryButton: {
-    marginTop: 12,
+    marginTop: 10,
     paddingVertical: 6,
   },
   retryText: {
@@ -271,3 +275,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+

@@ -6,18 +6,18 @@ import { FlexWidget, TextWidget, SvgWidget, OverlapWidget } from 'react-native-a
 
 const PRAYER_SCHEDULE_CACHE_KEY = 'prayer_bg_schedule_cache';
 
-const ISLAMIC_STAR_SVG = `<svg viewBox="0 0 100 100">
+const ISLAMIC_STAR_SVG = `<svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
   <polygon points="50,0 64.6,14.6 85.4,14.6 85.4,35.4 100,50 85.4,64.6 85.4,85.4 64.6,85.4 50,100 35.4,85.4 14.6,85.4 14.6,64.6 0,50 14.6,35.4 14.6,14.6 35.4,14.6" fill="#FDE047"/>
   <circle cx="50" cy="50" r="20" fill="#047857"/>
   <circle cx="50" cy="50" r="10" fill="#FDE047"/>
 </svg>`;
 
-const ISLAMIC_CRESCENT_SVG = `<svg viewBox="0 0 100 100">
+const ISLAMIC_CRESCENT_SVG = `<svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
   <path d="M50 10 A40 40 0 1 0 90 50 A30 30 0 1 1 50 10 Z" fill="#FDE047"/>
   <polygon points="75,18 79,28 89,28 81,35 84,45 75,38 66,45 69,35 61,28 71,28" fill="#FDE047"/>
 </svg>`;
 
-const ISLAMIC_ARCH_SVG = `<svg viewBox="0 0 200 30">
+const ISLAMIC_ARCH_SVG = `<svg viewBox="0 0 200 30" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
   <path d="M0 30 Q 50 0 100 0 Q 150 0 200 30" fill="none" stroke="#FDE047" stroke-width="3" opacity="0.7"/>
 </svg>`;
 
@@ -25,7 +25,7 @@ const ISLAMIC_ARCH_SVG = `<svg viewBox="0 0 200 30">
  * Tiled Islamic Geometric Background Pattern derived from IslamicTexture.tsx
  * Features 8-pointed star motifs, hexagons, connecting lattice lines & gold accents
  */
-const ISLAMIC_TEXTURE_SVG = `<svg width="400" height="200" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+const ISLAMIC_TEXTURE_SVG = `<svg width="100%" height="100%" viewBox="0 0 1000 500" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <pattern id="islamicPattern" x="0" y="0" width="72" height="72" patternUnits="userSpaceOnUse">
       <polygon points="36,22 39.8,29.9 48.6,26 44.7,34.8 52.6,38.6 44.7,42.4 48.6,51.2 39.8,47.3 36,55.2 32.2,47.3 23.4,51.2 27.3,42.4 19.4,38.6 27.3,34.8 23.4,26 32.2,29.9" fill="none" stroke="#FDE047" stroke-width="1.2" opacity="0.35"/>
@@ -149,6 +149,8 @@ export function PrayerWidgetUi({
   timeRemainingStr = '45 Menit Lagi',
   prayers = [],
   isOffline = false,
+  widgetWidth = 320,
+  widgetHeight = 180,
 }: {
   city?: string;
   nextPrayerName?: string;
@@ -157,6 +159,8 @@ export function PrayerWidgetUi({
   timeRemainingStr?: string;
   prayers?: { name: string; time: string }[];
   isOffline?: boolean;
+  widgetWidth?: number;
+  widgetHeight?: number;
 }) {
   const prayerList = prayers.length > 0 ? prayers : [
     { name: 'Subuh', time: '04:42' },
@@ -165,6 +169,20 @@ export function PrayerWidgetUi({
     { name: 'Maghrib', time: '18:01' },
     { name: 'Isya', time: '19:12' },
   ];
+
+  // Responsiveness Breakpoints based on Android Widget DP dimensions
+  const isSmallHeight = widgetHeight < 130;
+  const isCompactHeight = widgetHeight < 170;
+  const isNarrowWidth = widgetWidth < 290;
+  const isTinyWidth = widgetWidth < 180;
+
+  // Responsive dynamic sizes
+  const padding = isSmallHeight ? 8 : isCompactHeight ? 10 : 14;
+  const headerFontSize = isNarrowWidth ? 11 : 12;
+  const timeFontSize = isNarrowWidth ? 16 : isSmallHeight ? 18 : 22;
+  const countdownFontSize = isNarrowWidth ? 12 : 14;
+
+  const displayCity = city.length > 12 ? `${city.substring(0, 10)}..` : city;
 
   return (
     <OverlapWidget
@@ -176,7 +194,7 @@ export function PrayerWidgetUi({
         borderRadius: 16,
       }}
     >
-      {/* Background Tiled Islamic Geometric Pattern from IslamicTexture.tsx */}
+      {/* Background Tiled Islamic Geometric Pattern */}
       <SvgWidget
         svg={ISLAMIC_TEXTURE_SVG}
         style={{
@@ -185,12 +203,12 @@ export function PrayerWidgetUi({
         }}
       />
 
-      {/* Content Layer */}
+      {/* Content Layer with dynamic responsive layout */}
       <FlexWidget
         style={{
           height: 'match_parent',
           width: 'match_parent',
-          padding: 14,
+          padding: padding,
           flexDirection: 'column',
           justifyContent: 'space-between',
         }}
@@ -204,44 +222,45 @@ export function PrayerWidgetUi({
             width: 'match_parent',
           }}
         >
-          {/* Location Pill with Islamic Star Ornaments */}
+          {/* Location Pill */}
           <FlexWidget
             style={{
               backgroundColor: '#047857',
-              borderRadius: 12,
-              paddingHorizontal: 10,
-              paddingVertical: 5,
+              borderRadius: 10,
+              paddingHorizontal: isNarrowWidth ? 6 : 8,
+              paddingVertical: isSmallHeight ? 3 : 4,
               flexDirection: 'row',
               alignItems: 'center',
             }}
           >
-            <SvgWidget svg={ISLAMIC_STAR_SVG} style={{ width: 14, height: 14, marginRight: 5 }} />
+            <SvgWidget svg={ISLAMIC_STAR_SVG} style={{ width: isNarrowWidth ? 10 : 13, height: isNarrowWidth ? 10 : 13, marginRight: 4 }} />
             <TextWidget
-              text={`📍 ${city}`}
+              text={`📍 ${displayCity}`}
               style={{
-                fontSize: 13,
+                fontSize: headerFontSize,
                 color: '#FFFFFF',
                 fontWeight: 'bold',
               }}
             />
           </FlexWidget>
 
-          {/* Hijri / App Branding Badge with Crescent & Offline Indicator */}
+          {/* Hijri / App Branding Badge with Crescent */}
           <FlexWidget
             style={{
               backgroundColor: isOffline ? '#B45309' : '#03543F',
-              borderRadius: 12,
-              paddingHorizontal: 10,
-              paddingVertical: 5,
+              borderRadius: 10,
+              paddingHorizontal: isNarrowWidth ? 6 : 8,
+              paddingVertical: isSmallHeight ? 3 : 4,
               flexDirection: 'row',
               alignItems: 'center',
+              marginLeft: 4,
             }}
           >
-            <SvgWidget svg={ISLAMIC_CRESCENT_SVG} style={{ width: 14, height: 14, marginRight: 5 }} />
+            <SvgWidget svg={ISLAMIC_CRESCENT_SVG} style={{ width: isNarrowWidth ? 10 : 13, height: isNarrowWidth ? 10 : 13, marginRight: 4 }} />
             <TextWidget
-              text={isOffline ? '⚠️ Offline' : 'Muslim App'}
+              text={isOffline ? '⚠️ Offline' : isNarrowWidth ? 'Muslim' : 'Muslim App'}
               style={{
-                fontSize: 12,
+                fontSize: headerFontSize,
                 color: '#FDE047',
                 fontWeight: 'bold',
               }}
@@ -249,22 +268,25 @@ export function PrayerWidgetUi({
           </FlexWidget>
         </FlexWidget>
 
+
         {/* Center Hero Countdown Box */}
         <FlexWidget
           style={{
-            flexDirection: 'row',
+            flexDirection: isNarrowWidth && isSmallHeight ? 'column' : 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
             width: 'match_parent',
-            marginVertical: 6,
+            marginVertical: isSmallHeight ? 2 : 6,
           }}
         >
           <FlexWidget style={{ flexDirection: 'column' }}>
-            <SvgWidget svg={ISLAMIC_ARCH_SVG} style={{ width: 80, height: 10, marginBottom: 3 }} />
+            {!isSmallHeight && (
+              <SvgWidget svg={ISLAMIC_ARCH_SVG} style={{ width: isNarrowWidth ? 60 : 80, height: 8, marginBottom: 2 }} />
+            )}
             <TextWidget
-              text={`Menuju Adzan ${nextPrayerName}`}
+              text={`Adzan ${nextPrayerName}`}
               style={{
-                fontSize: 14,
+                fontSize: isNarrowWidth ? 12 : 13,
                 color: '#F3F4F6',
                 fontWeight: 'bold',
               }}
@@ -272,7 +294,7 @@ export function PrayerWidgetUi({
             <TextWidget
               text={nextPrayerTime}
               style={{
-                fontSize: 24,
+                fontSize: timeFontSize,
                 color: '#FFFFFF',
                 fontWeight: 'bold',
               }}
@@ -282,17 +304,18 @@ export function PrayerWidgetUi({
           <FlexWidget
             style={{
               backgroundColor: '#03543F',
-              borderRadius: 12,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              borderWidth: 1.5,
+              borderRadius: 10,
+              paddingHorizontal: isNarrowWidth ? 6 : 10,
+              paddingVertical: isSmallHeight ? 4 : 6,
+              borderWidth: 1,
               borderColor: '#FDE047',
+              marginTop: isNarrowWidth && isSmallHeight ? 4 : 0,
             }}
           >
             <TextWidget
               text={`⏳ ${timeRemainingStr}`}
               style={{
-                fontSize: 15,
+                fontSize: countdownFontSize,
                 color: '#FDE047',
                 fontWeight: 'bold',
               }}
@@ -300,57 +323,64 @@ export function PrayerWidgetUi({
           </FlexWidget>
         </FlexWidget>
 
-        {/* Bottom 5 Prayer Grid */}
-        <FlexWidget
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            width: 'match_parent',
-            paddingTop: 8,
-            borderTopWidth: 1,
-            borderTopColor: '#047857',
-          }}
-        >
-          {prayerList.map((p, idx) => {
-            const isNext = p.name.toLowerCase() === nextPrayerName.toLowerCase();
-            return (
-              <FlexWidget
-                key={idx}
-                style={{
-                  backgroundColor: isNext ? '#047857' : undefined,
-                  borderRadius: 8,
-                  paddingHorizontal: 8,
-                  paddingVertical: 6,
-                  alignItems: 'center',
-                  borderWidth: isNext ? 1.5 : 0,
-                  borderColor: isNext ? '#FDE047' : undefined,
-                }}
-              >
-                <TextWidget
-                  text={p.name}
+        {/* Bottom 5 Prayer Grid (Hidden in small height widgets to prevent overflow) */}
+        {!isSmallHeight && (
+          <FlexWidget
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              width: 'match_parent',
+              paddingTop: isCompactHeight ? 4 : 8,
+              borderTopWidth: 1,
+              borderTopColor: '#047857',
+            }}
+          >
+            {prayerList.map((p, idx) => {
+              const isNext = p.name.toLowerCase() === nextPrayerName.toLowerCase();
+              return (
+                <FlexWidget
+                  key={idx}
                   style={{
-                    fontSize: 11,
-                    color: isNext ? '#FDE047' : '#E5E7EB',
-                    fontWeight: isNext ? 'bold' : 'normal',
+                    flex: 1,
+                    backgroundColor: isNext ? '#047857' : undefined,
+                    borderRadius: 6,
+                    paddingHorizontal: isNarrowWidth ? 2 : 4,
+                    paddingVertical: isCompactHeight ? 3 : 5,
+                    alignItems: 'center',
+                    marginHorizontal: 2,
+                    borderWidth: isNext ? 1 : 0,
+                    borderColor: isNext ? '#FDE047' : undefined,
                   }}
-                />
-                <TextWidget
-                  text={p.time}
-                  style={{
-                    fontSize: 12,
-                    color: '#FFFFFF',
-                    fontWeight: isNext ? 'bold' : 'normal',
-                  }}
-                />
-              </FlexWidget>
-            );
-          })}
-        </FlexWidget>
+                >
+                  {!isTinyWidth && (
+                    <TextWidget
+                      text={p.name}
+                      style={{
+                        fontSize: isNarrowWidth ? 9 : 10,
+                        color: isNext ? '#FDE047' : '#E5E7EB',
+                        fontWeight: isNext ? 'bold' : 'normal',
+                      }}
+                    />
+                  )}
+                  <TextWidget
+                    text={p.time}
+                    style={{
+                      fontSize: isNarrowWidth ? 10 : 11,
+                      color: '#FFFFFF',
+                      fontWeight: isNext ? 'bold' : 'normal',
+                    }}
+                  />
+                </FlexWidget>
+              );
+            })}
+          </FlexWidget>
+        )}
       </FlexWidget>
     </OverlapWidget>
   );
 }
+
 
 export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
   switch (props.widgetAction) {
@@ -358,7 +388,20 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
     case 'WIDGET_UPDATE':
     case 'WIDGET_RESIZED':
       const widgetData = await getPrayerWidgetData();
-      props.renderWidget(<PrayerWidgetUi {...widgetData} />);
+      const rawWidth = props.widgetInfo?.width || 320;
+      const screenWidth = props.widgetInfo?.screenInfo?.screenWidthDp;
+      const widgetHeight = props.widgetInfo?.height || 180;
+      const effectiveWidth = (screenWidth && rawWidth >= 250)
+        ? Math.max(rawWidth, Math.round(screenWidth - 24))
+        : rawWidth;
+
+      props.renderWidget(
+        <PrayerWidgetUi
+          {...widgetData}
+          widgetWidth={effectiveWidth}
+          widgetHeight={widgetHeight}
+        />
+      );
       break;
 
     case 'WIDGET_DELETED':
@@ -368,3 +411,4 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
       break;
   }
 }
+

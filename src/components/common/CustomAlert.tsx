@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
 import { COLORS, SPACING } from '../../constants/theme';
 import { CheckCircle2, AlertCircle, Info, XCircle, Sparkles } from 'lucide-react-native';
 
@@ -24,18 +24,19 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({
   onConfirm,
   onClose,
 }) => {
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   if (!visible) return null;
 
   const getIcon = () => {
     switch (type) {
       case 'success':
-        return <CheckCircle2 color={COLORS.surface} size={32} />;
+        return <CheckCircle2 color={COLORS.surface} size={30} />;
       case 'warning':
-        return <AlertCircle color={COLORS.surface} size={32} />;
+        return <AlertCircle color={COLORS.surface} size={30} />;
       case 'error':
-        return <XCircle color={COLORS.surface} size={32} />;
+        return <XCircle color={COLORS.surface} size={30} />;
       default:
-        return <Info color={COLORS.surface} size={32} />;
+        return <Info color={COLORS.surface} size={30} />;
     }
   };
 
@@ -52,55 +53,65 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({
     }
   };
 
+  const maxModalWidth = Math.min(380, screenWidth * 0.9);
+  const maxModalHeight = Math.min(600, screenHeight * 0.85);
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={styles.alertCard}>
-          {/* Top Decorative Sparkle */}
-          <View style={styles.sparkleDecoration}>
-            <Sparkles color={COLORS.accent} size={16} />
-          </View>
+        <View style={[styles.alertCard, { width: maxModalWidth, maxHeight: maxModalHeight }]}>
+          <ScrollView
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ alignItems: 'center', paddingBottom: 4 }}
+            style={{ width: '100%' }}
+          >
+            {/* Top Decorative Sparkle */}
+            <View style={styles.sparkleDecoration}>
+              <Sparkles color={COLORS.accent} size={16} />
+            </View>
 
-          {/* Type Icon Badge */}
-          <View style={[styles.iconBadge, { backgroundColor: getBadgeColor() }]}>
-            {getIcon()}
-          </View>
+            {/* Type Icon Badge */}
+            <View style={[styles.iconBadge, { backgroundColor: getBadgeColor() }]}>
+              {getIcon()}
+            </View>
 
-          {/* Title & Message */}
-          <Text style={styles.alertTitle}>{title}</Text>
-          <Text style={styles.alertMessage}>{message}</Text>
+            {/* Title & Message */}
+            <Text style={styles.alertTitle}>{title}</Text>
+            <Text style={styles.alertMessage}>{message}</Text>
 
-          {/* Action Buttons Row */}
-          {onConfirm ? (
-            <View style={styles.btnRow}>
+            {/* Action Buttons Row */}
+            {onConfirm ? (
+              <View style={styles.btnRow}>
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={onClose}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.cancelBtnText}>{cancelText}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.confirmBtnHalf, { backgroundColor: getBadgeColor() }]}
+                  onPress={() => {
+                    onConfirm();
+                    onClose();
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.confirmBtnText}>{confirmText}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
               <TouchableOpacity
-                style={styles.cancelBtn}
+                style={[styles.confirmBtnFull, { backgroundColor: getBadgeColor() }]}
                 onPress={onClose}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.cancelBtnText}>{cancelText}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.confirmBtnHalf, { backgroundColor: getBadgeColor() }]}
-                onPress={() => {
-                  onConfirm();
-                  onClose();
-                }}
                 activeOpacity={0.85}
               >
                 <Text style={styles.confirmBtnText}>{confirmText}</Text>
               </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={[styles.confirmBtnFull, { backgroundColor: getBadgeColor() }]}
-              onPress={onClose}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.confirmBtnText}>{confirmText}</Text>
-            </TouchableOpacity>
-          )}
+            )}
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -113,14 +124,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: SPACING.lg,
+    padding: SPACING.md,
   },
   alertCard: {
-    width: '90%',
-    maxWidth: 340,
     backgroundColor: COLORS.surface,
     borderRadius: 24,
-    padding: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.lg,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
@@ -132,31 +142,31 @@ const styles = StyleSheet.create({
   },
   sparkleDecoration: {
     position: 'absolute',
-    top: 16,
-    right: 16,
+    top: 4,
+    right: 4,
   },
   iconBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
     elevation: 4,
   },
   alertTitle: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: 'bold',
     color: COLORS.text,
     marginBottom: SPACING.xs,
     textAlign: 'center',
   },
   alertMessage: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.textMuted,
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: SPACING.lg,
+    lineHeight: 19,
+    marginBottom: SPACING.md,
   },
   btnRow: {
     flexDirection: 'row',
@@ -198,3 +208,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+

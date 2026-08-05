@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
 import { COLORS, SPACING } from '../../constants/theme';
 import { useThemeStore } from '../../store/useThemeStore';
-import { LogIn, UserPlus, Sparkles } from 'lucide-react-native';
+import { Sparkles, UserPlus } from 'lucide-react-native';
 
 interface GuestGuardModalProps {
   visible: boolean;
@@ -17,45 +17,56 @@ export const GuestGuardModal: React.FC<GuestGuardModalProps> = ({
   onNavigateRegister,
   featureName = 'fitur ini',
 }) => {
-  const { colors, isDarkMode } = useThemeStore();
+  const { colors } = useThemeStore();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   if (!visible) return null;
+
+  const maxModalWidth = Math.min(380, screenWidth * 0.9);
+  const maxModalHeight = Math.min(600, screenHeight * 0.85);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          {/* Icon */}
-          <View style={[styles.iconBadge, { backgroundColor: colors.primary }]}>
-            <Sparkles color="#FFFFFF" size={32} />
-          </View>
-
-          <Text style={[styles.title, { color: colors.text }]}>Login Diperlukan</Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-            Untuk menggunakan {featureName}, kamu perlu memiliki akun Muslim App terlebih dahulu.
-          </Text>
-
-          {/* Register Button */}
-          <TouchableOpacity
-            style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-            onPress={() => {
-              onClose();
-              onNavigateRegister();
-            }}
-            activeOpacity={0.85}
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, width: maxModalWidth, maxHeight: maxModalHeight }]}>
+          <ScrollView
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ alignItems: 'center', paddingBottom: 4 }}
+            style={{ width: '100%' }}
           >
-            <UserPlus color="#FFFFFF" size={18} />
-            <Text style={styles.primaryBtnText}>Daftar Akun Gratis</Text>
-          </TouchableOpacity>
+            {/* Icon */}
+            <View style={[styles.iconBadge, { backgroundColor: colors.primary }]}>
+              <Sparkles color="#FFFFFF" size={30} />
+            </View>
 
-          {/* Cancel / Stay Guest */}
-          <TouchableOpacity
-            style={[styles.cancelBtn, { borderColor: colors.border }]}
-            onPress={onClose}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.cancelBtnText, { color: colors.textMuted }]}>Kembali (Mode Tamu)</Text>
-          </TouchableOpacity>
+            <Text style={[styles.title, { color: colors.text }]}>Login Diperlukan</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+              Untuk menggunakan {featureName}, kamu perlu memiliki akun Muslim App terlebih dahulu.
+            </Text>
+
+            {/* Register Button */}
+            <TouchableOpacity
+              style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+              onPress={() => {
+                onClose();
+                onNavigateRegister();
+              }}
+              activeOpacity={0.85}
+            >
+              <UserPlus color="#FFFFFF" size={18} />
+              <Text style={styles.primaryBtnText}>Daftar Akun Gratis</Text>
+            </TouchableOpacity>
+
+            {/* Cancel / Stay Guest */}
+            <TouchableOpacity
+              style={[styles.cancelBtn, { borderColor: colors.border }]}
+              onPress={onClose}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.cancelBtnText, { color: colors.textMuted }]}>Kembali (Mode Tamu)</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -68,13 +79,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: SPACING.lg,
+    padding: SPACING.md,
   },
   card: {
-    width: '90%',
-    maxWidth: 340,
     borderRadius: 24,
-    padding: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.lg,
     alignItems: 'center',
     borderWidth: 1,
     elevation: 10,
@@ -84,25 +94,25 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
   },
   iconBadge: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
     elevation: 4,
   },
   title: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: 'bold',
     marginBottom: SPACING.xs,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     textAlign: 'center',
-    lineHeight: 21,
-    marginBottom: SPACING.lg,
+    lineHeight: 19,
+    marginBottom: SPACING.md,
   },
   primaryBtn: {
     width: '100%',
@@ -111,7 +121,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: SPACING.md,
     borderRadius: 14,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.xs,
     elevation: 2,
   },
   primaryBtnText: {
@@ -132,3 +142,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+

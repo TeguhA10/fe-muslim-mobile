@@ -48,10 +48,11 @@
             {
               "name": "PrayerWidget",
               "label": "Jadwal Salat & Adzan",
-              "minWidth": "320dp",
-              "minHeight": "120dp",
+              "minWidth": "130dp",
+              "minHeight": "60dp",
               "targetCellWidth": 4,
               "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
               "description": "Widget jadwal salat 5 waktu dan hitung mundur adzan real-time",
               "previewImage": "./assets/logo2_muslim_app.png"
             }

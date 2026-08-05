@@ -92,6 +92,7 @@ export class PrayerBackgroundService {
       }
 
       NativePrayerService.startNativeService(this.prayerTimes, this.currentCity);
+      await this.runCountdownCycle();
     } else {
       NativePrayerService.stopNativeService();
       NotificationService.dismissOngoingNotification();
@@ -247,7 +248,19 @@ export class PrayerBackgroundService {
         getPrayerWidgetData().then((widgetData) => {
           requestWidgetUpdate({
             widgetName: 'PrayerWidget',
-            renderWidget: () => React.createElement(PrayerWidgetUi, widgetData as any),
+            renderWidget: (widgetInfo) => {
+              const rawWidth = widgetInfo?.width || 320;
+              const screenWidth = widgetInfo?.screenInfo?.screenWidthDp;
+              const effectiveWidth = (screenWidth && rawWidth >= 250)
+                ? Math.max(rawWidth, Math.round(screenWidth - 24))
+                : rawWidth;
+
+              return React.createElement(PrayerWidgetUi, {
+                ...widgetData,
+                widgetWidth: effectiveWidth,
+                widgetHeight: widgetInfo?.height || 180,
+              } as any);
+            },
             widgetNotFound: () => {},
           }).catch(() => {});
         }).catch(() => {});

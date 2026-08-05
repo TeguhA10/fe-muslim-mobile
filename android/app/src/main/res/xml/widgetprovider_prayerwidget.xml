@@ -1,21 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-    android:minWidth="320dp"
-    android:minHeight="120dp"
+    android:minWidth="130dp"
+    android:minHeight="60dp"
+    android:minResizeWidth="130dp"
+    android:minResizeHeight="60dp"
+    android:maxResizeWidth="600dp"
+    android:maxResizeHeight="400dp"
     android:targetCellWidth="4"
     android:targetCellHeight="2"
-
-
-
-    android:resizeMode="none"
-
+    android:resizeMode="horizontal|vertical"
     android:description="@string/widget_prayerwidget_description"
-
     android:initialLayout="@layout/rn_widget"
     android:previewImage="@drawable/prayerwidget_preview"
-
-
-
     android:updatePeriodMillis="900000"
     android:widgetCategory="home_screen">
 </appwidget-provider>
+
+

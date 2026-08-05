@@ -43,12 +43,9 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const [isOffsetModalOpen, setIsOffsetModalOpen] = useState(false);
   const [isBgPermissionModalOpen, setIsBgPermissionModalOpen] = useState(false);
 
-  const handleToggleStickyNotif = (value: boolean) => {
-    setStickyNotifEnabled(value);
-    PrayerBackgroundService.enableNativeService(value);
-    // if (value && Platform.OS === 'android') {
-    //   setIsBgPermissionModalOpen(true);
-    // }
+  const handleToggleStickyNotif = async (value: boolean) => {
+    await setStickyNotifEnabled(value);
+    await PrayerBackgroundService.enableNativeService(value);
   };
 
 
