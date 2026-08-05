@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
 import { Card } from '../../../components/common/Card';
 import { LocationPickerModal } from '../../../components/common/LocationPickerModal';
@@ -18,6 +19,30 @@ export const IbadahScreen: React.FC<{ navigation?: any }> = ({ navigation }) => 
   const [isLocationModalOpen, setIsLocationModalOpen] = useState<boolean>(false);
 
   const scrollViewRef = React.useRef<ScrollView>(null);
+
+  // Hardware Back Button Handler for Android
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (isLocationModalOpen) {
+          setIsLocationModalOpen(false);
+          return true;
+        }
+        if (showQiblaCompass) {
+          setShowQiblaCompass(false);
+          return true;
+        }
+        if (showHijriYearCalendar) {
+          setShowHijriYearCalendar(false);
+          return true;
+        }
+        return false;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [isLocationModalOpen, showQiblaCompass, showHijriYearCalendar])
+  );
 
   React.useEffect(() => {
     if (!navigation) return;

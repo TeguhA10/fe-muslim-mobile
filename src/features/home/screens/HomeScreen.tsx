@@ -15,7 +15,9 @@ import {
   ScrollView,
   Share,
   Platform,
+  BackHandler,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
 import { Card } from '../../../components/common/Card';
@@ -146,6 +148,59 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const hideAlert = () => {
     setAlertConfig((prev) => ({ ...prev, visible: false }));
   };
+
+  // Hardware Back Button Handler for Android
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (imageViewerConfig.visible) {
+          setImageViewerConfig((prev) => ({ ...prev, visible: false }));
+          return true;
+        }
+        if (isGuestModalOpen) {
+          setIsGuestModalOpen(false);
+          return true;
+        }
+        if (isModalOpen) {
+          setIsModalOpen(false);
+          return true;
+        }
+        if (selectedPostForComment) {
+          setSelectedPostForComment(null);
+          return true;
+        }
+        if (selectedUserId) {
+          setSelectedUserId(null);
+          return true;
+        }
+        if (selectedPostForDetail) {
+          setSelectedPostForDetail(null);
+          return true;
+        }
+        if (showNotificationScreen) {
+          setShowNotificationScreen(false);
+          return true;
+        }
+        if (activeTab !== 'feed') {
+          setActiveTab('feed');
+          return true;
+        }
+        return false;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [
+      imageViewerConfig.visible,
+      isGuestModalOpen,
+      isModalOpen,
+      selectedPostForComment,
+      selectedUserId,
+      selectedPostForDetail,
+      showNotificationScreen,
+      activeTab,
+    ])
+  );
 
   // Helper to generate current active feed cache key
   const getCurrentCacheKey = () => {

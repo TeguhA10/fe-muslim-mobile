@@ -12,7 +12,9 @@ import {
   RefreshControl,
   Image,
   Platform,
+  BackHandler,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
 import * as ImagePicker from 'expo-image-picker';
 import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
@@ -124,6 +126,69 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
   const [showMyPosts, setShowMyPosts] = useState<boolean>(false);
   const [showTrashPosts, setShowTrashPosts] = useState<boolean>(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  // Hardware Back Button Handler for Android
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (viewAvatarModal) {
+          setViewAvatarModal(false);
+          return true;
+        }
+        if (userListModalConfig.visible) {
+          setUserListModalConfig({ ...userListModalConfig, visible: false });
+          return true;
+        }
+        if (isMethodModalOpen) {
+          setIsMethodModalOpen(false);
+          return true;
+        }
+        if (isOffsetModalOpen) {
+          setIsOffsetModalOpen(false);
+          return true;
+        }
+        if (selectedUserId) {
+          setSelectedUserId(null);
+          return true;
+        }
+        if (showPrivacyPolicy) {
+          setShowPrivacyPolicy(false);
+          return true;
+        }
+        if (showChangePassword) {
+          setShowChangePassword(false);
+          return true;
+        }
+        if (showEditProfile) {
+          setShowEditProfile(false);
+          return true;
+        }
+        if (showMyPosts) {
+          setShowMyPosts(false);
+          return true;
+        }
+        if (showTrashPosts) {
+          setShowTrashPosts(false);
+          return true;
+        }
+        return false;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [
+      viewAvatarModal,
+      userListModalConfig,
+      isMethodModalOpen,
+      isOffsetModalOpen,
+      selectedUserId,
+      showPrivacyPolicy,
+      showChangePassword,
+      showEditProfile,
+      showMyPosts,
+      showTrashPosts,
+    ])
+  );
 
   // Fetch real profile and database stats summary
   const fetchProfileData = useCallback(async (isPullToRefresh = false) => {

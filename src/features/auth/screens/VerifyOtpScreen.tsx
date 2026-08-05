@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
 import { Card } from '../../../components/common/Card';
 import { Input } from '../../../components/common/Input';
@@ -19,6 +20,17 @@ interface VerifyOtpScreenProps {
 }
 
 export const VerifyOtpScreen: React.FC<VerifyOtpScreenProps> = ({ email, otpExpiresAt = null, onNavigateLogin }) => {
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        onNavigateLogin();
+        return true;
+      };
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [onNavigateLogin])
+  );
+
   const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);

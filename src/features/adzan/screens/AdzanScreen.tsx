@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Modal, Platform, BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
 import { Card } from '../../../components/common/Card';
@@ -48,8 +49,35 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
     await PrayerBackgroundService.enableNativeService(value);
   };
 
-
   const scrollViewRef = React.useRef<ScrollView>(null);
+
+  // Hardware Back Button Handler for Android
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (isLocationModalOpen) {
+          setIsLocationModalOpen(false);
+          return true;
+        }
+        if (isGuestModalOpen) {
+          setIsGuestModalOpen(false);
+          return true;
+        }
+        if (isOffsetModalOpen) {
+          setIsOffsetModalOpen(false);
+          return true;
+        }
+        if (isBgPermissionModalOpen) {
+          setIsBgPermissionModalOpen(false);
+          return true;
+        }
+        return false;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [isLocationModalOpen, isGuestModalOpen, isOffsetModalOpen, isBgPermissionModalOpen])
+  );
 
   useEffect(() => {
     if (!navigation) return;

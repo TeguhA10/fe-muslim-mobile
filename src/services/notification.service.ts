@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { apiClient } from '../api/apiClient';
 import { ENDPOINTS } from '../api/endpoints';
@@ -22,6 +23,26 @@ export class NotificationService {
   private static isChannelCreated = false;
   private static pushToken: string | null = null;
   private static listenersAttached = false;
+
+  /**
+   * Immediately present a heads-up local status bar notification banner on phone status bar
+   */
+  static async presentLocalNotification(title: string, body: string, data?: any) {
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          sound: 'default',
+          priority: Notifications.AndroidNotificationPriority.MAX,
+          data: data || {},
+        },
+        trigger: null,
+      });
+    } catch (e) {
+      console.log('[NotificationService] Error presenting local status bar notification:', e);
+    }
+  }
 
   /**
    * Request notification permissions & set up Android notification channels
@@ -121,7 +142,17 @@ export class NotificationService {
       const hasPermission = await this.init();
       if (!hasPermission) return null;
 
-      const tokenData = await Notifications.getExpoPushTokenAsync().catch(() => null);
+      const projectId =
+        Constants?.expoConfig?.extra?.eas?.projectId ||
+        Constants?.easConfig?.projectId ||
+        'c7cd9c62-3999-4ff0-943f-80acd6e5578f';
+
+      const tokenData = await Notifications.getExpoPushTokenAsync(
+        projectId ? { projectId } : undefined
+      ).catch((err) => {
+        console.log('[NotificationService] Failed to get Expo push token:', err?.message || err);
+        return null;
+      });
       if (!tokenData?.data) return null;
 
       const token = tokenData.data;

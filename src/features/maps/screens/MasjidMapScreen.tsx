@@ -9,7 +9,9 @@ import {
   Linking,
   ActivityIndicator,
   ScrollView,
+  BackHandler,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
 import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
 import { Card } from '../../../components/common/Card';
@@ -52,6 +54,38 @@ export const MasjidMapScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
 
   // Selected Mosque for Route Navigation Modal
   const [selectedRouteMosque, setSelectedRouteMosque] = useState<Masjid | null>(null);
+
+  // Hardware Back Button Handler for Android
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (selectedRouteMosque) {
+          setSelectedRouteMosque(null);
+          return true;
+        }
+        if (selectedDetailMasjid) {
+          setSelectedDetailMasjid(null);
+          return true;
+        }
+        if (isLocationModalOpen) {
+          setIsLocationModalOpen(false);
+          return true;
+        }
+        if (isGuestModalOpen) {
+          setIsGuestModalOpen(false);
+          return true;
+        }
+        if (activeTab === 'bookmarks') {
+          setActiveTab('nearby');
+          return true;
+        }
+        return false;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [selectedRouteMosque, selectedDetailMasjid, isLocationModalOpen, isGuestModalOpen, activeTab])
+  );
 
   useEffect(() => {
     if (!navigation) return;

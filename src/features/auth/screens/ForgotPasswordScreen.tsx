@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
 import { Card } from '../../../components/common/Card';
 import { Input } from '../../../components/common/Input';
@@ -18,6 +19,17 @@ interface ForgotPasswordScreenProps {
 }
 
 export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ onNavigateLogin }) => {
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        onNavigateLogin();
+        return true;
+      };
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [onNavigateLogin])
+  );
+
   const [step, setStep] = useState<1 | 2>(1);
   const [email, setEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');

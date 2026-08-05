@@ -3,6 +3,7 @@ import { io, Socket } from 'socket.io-client/dist/socket.io.js';
 import { Platform } from 'react-native';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { NotificationService } from './notification.service';
 
 const getSocketUrl = () => {
   const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -57,6 +58,14 @@ class SocketService {
       if (isAuth) {
         useNotificationStore.getState().fetchUnreadCount();
         useNotificationStore.getState().fetchNotifications(1, true);
+
+        if (notificationData?.title && notificationData?.body) {
+          NotificationService.presentLocalNotification(
+            notificationData.title,
+            notificationData.body,
+            notificationData
+          );
+        }
       }
     });
 
