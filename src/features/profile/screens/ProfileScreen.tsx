@@ -60,6 +60,7 @@ import {
   Compass,
   Trash2,
 } from 'lucide-react-native';
+import { getTimezone } from '../../../utils/timezone';
 
 // Constants imported from useSettingsStore
 
@@ -196,7 +197,12 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
       if (isPullToRefresh) setRefreshing(true);
       else setLoading(true);
 
-      const res = await apiClient.get(ENDPOINTS.AUTH.PROFILE);
+      const timezone = getTimezone();
+      const res = await apiClient.get(ENDPOINTS.AUTH.PROFILE, {
+        headers: {
+          'X-Timezone': timezone,
+        },
+      });
       if (res.data?.data) {
         const data: ProfileData = res.data.data;
         setProfileData(data);
