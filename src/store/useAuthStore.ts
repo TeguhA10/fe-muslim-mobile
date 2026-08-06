@@ -38,19 +38,27 @@ export const useAuthStore = create<AuthState>((set) => ({
   pendingRegisterRedirect: false,
   login: async (user, token, refreshToken = null) => {
     setAuthToken(token);
-    set({ user, token, refreshToken, isAuthenticated: true, isGuest: false, pendingRegisterRedirect: false });
+    const existingRefreshToken = useAuthStore.getState().refreshToken;
+    const finalRefreshToken = refreshToken || existingRefreshToken;
+    set({ user, token, refreshToken: finalRefreshToken, isAuthenticated: true, isGuest: false, pendingRegisterRedirect: false });
     try {
       await secureStorage.setItem(AUTH_STORAGE_KEYS.accessToken, token);
-      await secureStorage.setItem(AUTH_STORAGE_KEYS.refreshToken, refreshToken || '');
+      if (refreshToken) {
+        await secureStorage.setItem(AUTH_STORAGE_KEYS.refreshToken, refreshToken);
+      }
       await secureStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(user));
     } catch {}
   },
   setTokens: async (token, refreshToken = null) => {
     setAuthToken(token);
-    set({ token, refreshToken, isAuthenticated: true, isGuest: false });
+    const existingRefreshToken = useAuthStore.getState().refreshToken;
+    const finalRefreshToken = refreshToken || existingRefreshToken;
+    set({ token, refreshToken: finalRefreshToken, isAuthenticated: true, isGuest: false });
     try {
       await secureStorage.setItem(AUTH_STORAGE_KEYS.accessToken, token);
-      await secureStorage.setItem(AUTH_STORAGE_KEYS.refreshToken, refreshToken || '');
+      if (refreshToken) {
+        await secureStorage.setItem(AUTH_STORAGE_KEYS.refreshToken, refreshToken);
+      }
     } catch {}
   },
   setUser: async (user) => {

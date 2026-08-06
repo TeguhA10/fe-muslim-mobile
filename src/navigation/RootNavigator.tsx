@@ -59,15 +59,17 @@ export const RootNavigator: React.FC = () => {
 
         setAuthToken(accessToken);
 
-        // Restore cached user session temporarily for fast UI load
+        // 1. Restore cached user session immediately so user enters app without delay
+        let hasCachedSession = false;
         if (storedUserJson && isActive) {
           try {
             const cachedUser = JSON.parse(storedUserJson);
             await useAuthStore.getState().login(cachedUser, accessToken, refreshToken || null);
+            hasCachedSession = true;
           } catch (e) {}
         }
 
-        // Try syncing fresh profile data from backend
+        // 2. Try syncing fresh profile data from backend
         let meSuccess = false;
         try {
           const meRes = await apiClient.get(ENDPOINTS.AUTH.ME);
@@ -77,21 +79,25 @@ export const RootNavigator: React.FC = () => {
             meSuccess = true;
           }
         } catch (meErr: any) {
-          // If no server response at all (offline/network error), keep cached session
-          if (!meErr?.response) {
-            return;
+          console.log('[RootNavigator] Profile sync error:', meErr?.response?.status || meErr?.message);
+
+          // If no server response (offline/network error) or 5xx server error, keep cached session if available
+          if (!meErr?.response || meErr?.response?.status >= 500) {
+            if (hasCachedSession) {
+              return;
+            }
           }
         }
 
         if (meSuccess) return;
 
-        // Server responded with an error for GET /auth/me -> Attempt Refresh Token if available
+        // 3. If GET /auth/me failed with 4xx error (e.g. 401 token expired), attempt Refresh Token if available
         if (refreshToken) {
           try {
             const refreshRes = await apiClient.post(ENDPOINTS.AUTH.REFRESH_TOKEN, { refresh_token: refreshToken });
             const newAccessToken = refreshRes.data?.data?.accessToken || '';
-            const newRefreshToken = refreshRes.data?.data?.refreshToken || '';
-            if (newAccessToken && newRefreshToken) {
+            const newRefreshToken = refreshRes.data?.data?.refreshToken || refreshToken;
+            if (newAccessToken) {
               setAuthToken(newAccessToken);
               if (isActive) await useAuthStore.getState().setTokens(newAccessToken, newRefreshToken);
 
@@ -103,17 +109,16 @@ export const RootNavigator: React.FC = () => {
               }
             }
           } catch (refreshErr: any) {
-            // If server responds with any error during refresh, session is invalid -> logout
-            if (refreshErr?.response) {
+            console.log('[RootNavigator] Refresh token error:', refreshErr?.response?.status || refreshErr?.message);
+            // Only log out if refresh token was explicitly rejected (400, 401, 403)
+            if (refreshErr?.response && (refreshErr.response.status === 401 || refreshErr.response.status === 400 || refreshErr.response.status === 403)) {
               if (isActive) await useAuthStore.getState().logout();
               return;
             }
           }
-        }
-
-        // If server invalidated session or refresh failed, log out immediately
-        if (isActive) {
-          await useAuthStore.getState().logout();
+        } else if (!hasCachedSession) {
+          // If no refresh token and no cached session, reset session
+          if (isActive) await useAuthStore.getState().logout();
         }
       } finally {
         if (isActive) setIsBooting(false);

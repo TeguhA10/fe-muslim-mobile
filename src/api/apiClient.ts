@@ -62,15 +62,15 @@ apiClient.interceptors.response.use(
         if (storedRefreshToken) {
           console.log('[apiClient] Attempting token refresh via /auth/refresh-token...');
           const refreshRes = await axios.post(`${getBaseUrl()}${ENDPOINTS.AUTH.REFRESH_TOKEN}`, {
-            refreshToken: storedRefreshToken,
+            refresh_token: storedRefreshToken,
           });
 
-          const newAccessToken = refreshRes.data?.data?.token;
+          const newAccessToken = refreshRes.data?.data?.accessToken;
           const newRefreshToken = refreshRes.data?.data?.refreshToken || storedRefreshToken;
 
           if (newAccessToken) {
             setAuthToken(newAccessToken);
-            useAuthStore.getState().setTokens(newAccessToken, newRefreshToken);
+            await useAuthStore.getState().setTokens(newAccessToken, newRefreshToken);
             originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
             console.log('[apiClient] Token refresh successful. Retrying original request.');
             return apiClient(originalRequest);
@@ -78,9 +78,9 @@ apiClient.interceptors.response.use(
         }
       } catch (refreshErr: any) {
         console.log('[apiClient] Refresh token request failed:', refreshErr?.message || refreshErr);
-        if (refreshErr.response?.status === 401) {
+        if (refreshErr.response?.status === 401 || refreshErr.response?.status === 400) {
           console.log('[apiClient] Refresh token expired or revoked. Invalidating session.');
-          useAuthStore.getState().logout();
+          await useAuthStore.getState().logout();
         }
       }
     }
