@@ -47,7 +47,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         await secureStorage.setItem(AUTH_STORAGE_KEYS.refreshToken, refreshToken);
       }
       await secureStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(user));
-    } catch {}
+    } catch { }
   },
   setTokens: async (token, refreshToken = null) => {
     setAuthToken(token);
@@ -59,14 +59,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (refreshToken) {
         await secureStorage.setItem(AUTH_STORAGE_KEYS.refreshToken, refreshToken);
       }
-    } catch {}
+    } catch { }
   },
   setUser: async (user) => {
     set({ user });
     try {
       if (user) await secureStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(user));
       else await secureStorage.removeItem(AUTH_STORAGE_KEYS.user);
-    } catch {}
+    } catch { }
   },
   continueAsGuest: () => {
     set({ isGuest: true, pendingRegisterRedirect: false });
@@ -97,14 +97,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     // 4. Call backend API to invalidate token (best effort)
     try {
       await apiClient.post(ENDPOINTS.AUTH.LOGOUT);
-    } catch {}
+    } catch { }
 
     // 5. Clear secure storage
     try {
       await secureStorage.removeItem(AUTH_STORAGE_KEYS.accessToken);
       await secureStorage.removeItem(AUTH_STORAGE_KEYS.refreshToken);
       await secureStorage.removeItem(AUTH_STORAGE_KEYS.user);
-    } catch {}
+    } catch { }
   },
   requestRegister: () => {
     // Exit guest mode and signal RootNavigator to show Register screen

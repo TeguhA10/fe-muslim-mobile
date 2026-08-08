@@ -127,7 +127,7 @@ export const AdzanScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   useEffect(() => {
     if (prayerTimes && prayerTimes.length > 0) {
       PrayerBackgroundService.updateSchedule(
-        prayerTimes.map((p) => ({ name: p.name, time: p.time })),
+        prayerTimes.map((p) => ({ name: p.name, time: p.time, sound: prayerSounds[p.name as keyof PrayerSoundSettings] || 'adzan_makkah', })),
         city
       );
     }

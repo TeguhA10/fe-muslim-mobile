@@ -6,7 +6,7 @@ import { useAuthStore } from '../store/useAuthStore';
 
 const getBaseUrl = () => {
   const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
-  
+
   if (envUrl) {
     if (Platform.OS === 'android' && envUrl.includes('localhost')) {
       return envUrl.replace('localhost', '10.0.2.2');
@@ -52,8 +52,8 @@ apiClient.interceptors.response.use(
 
     // Handle 401 Unauthorized with Automatic Refresh Token retry
     const isAuthEndpoint = originalRequest.url?.includes(ENDPOINTS.AUTH.LOGIN) ||
-                           originalRequest.url?.includes(ENDPOINTS.AUTH.REFRESH_TOKEN) ||
-                           originalRequest.url?.includes(ENDPOINTS.AUTH.LOGOUT);
+      originalRequest.url?.includes(ENDPOINTS.AUTH.REFRESH_TOKEN) ||
+      originalRequest.url?.includes(ENDPOINTS.AUTH.LOGOUT);
 
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;

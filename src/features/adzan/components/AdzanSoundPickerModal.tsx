@@ -22,12 +22,20 @@ interface AdzanSoundPickerModalProps {
 }
 
 // Audio preview URLs hosted on Cloudinary CDN
-const SOUND_PREVIEWS: Record<string, string> = {
-  adzan_makkah: 'https://res.cloudinary.com/duzkwgevq/video/upload/v1785943922/muslim_app/adzan_audio/adzan_makkah.mp3',
-  adzan_madinah: 'https://res.cloudinary.com/duzkwgevq/video/upload/v1785943916/muslim_app/adzan_audio/adzan_madinah.mp3',
-  adzan_subuh_makkah: 'https://res.cloudinary.com/duzkwgevq/video/upload/v1785943932/muslim_app/adzan_audio/adzan_subuh_makkah.mp3',
-  adzan_soft: 'https://res.cloudinary.com/duzkwgevq/video/upload/v1785943940/muslim_app/adzan_audio/adzan_soft.mp3',
-  chime_short: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3',
+// const SOUND_PREVIEWS: Record<string, string> = {
+//   adzan_makkah: 'https://res.cloudinary.com/duzkwgevq/video/upload/v1785943922/muslim_app/adzan_audio/adzan_makkah.mp3',
+//   adzan_madinah: 'https://res.cloudinary.com/duzkwgevq/video/upload/v1785943916/muslim_app/adzan_audio/adzan_madinah.mp3',
+//   adzan_subuh_makkah: 'https://res.cloudinary.com/duzkwgevq/video/upload/v1785943932/muslim_app/adzan_audio/adzan_subuh_makkah.mp3',
+//   adzan_soft: 'https://res.cloudinary.com/duzkwgevq/video/upload/v1785943940/muslim_app/adzan_audio/adzan_soft.mp3',
+//   chime_short: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3',
+// };
+
+const SOUND_PREVIEWS: Record<string, number> = {
+  adzan_makkah: require('../../../../assets/adzan/adzan_makkah.mp3'),
+  adzan_madinah: require('../../../../assets/adzan/adzan_madinah.mp3'),
+  adzan_subuh_makkah: require('../../../../assets/adzan/adzan_subuh_makkah.mp3'),
+  adzan_soft: require('../../../../assets/adzan/adzan_soft.mp3'),
+  chime_short: require('../../../../assets/adzan/short_chime.mp3'),
 };
 
 export const AdzanSoundPickerModal: React.FC<AdzanSoundPickerModalProps> = ({
@@ -49,7 +57,7 @@ export const AdzanSoundPickerModal: React.FC<AdzanSoundPickerModalProps> = ({
   React.useEffect(() => {
     return () => {
       if (soundObject) {
-        soundObject.unloadAsync().catch(() => {});
+        soundObject.unloadAsync().catch(() => { });
       }
     };
   }, [soundObject]);
@@ -59,7 +67,7 @@ export const AdzanSoundPickerModal: React.FC<AdzanSoundPickerModalProps> = ({
       if (playingId === soundId && soundObject) {
         try {
           await soundObject.stopAsync();
-        } catch {}
+        } catch { }
         setPlayingId(null);
         return;
       }
@@ -68,24 +76,23 @@ export const AdzanSoundPickerModal: React.FC<AdzanSoundPickerModalProps> = ({
         try {
           await soundObject.stopAsync();
           await soundObject.unloadAsync();
-        } catch {}
+        } catch { }
       }
 
-      const streamUrl = SOUND_PREVIEWS[soundId];
-      if (!streamUrl) return;
+      const source = SOUND_PREVIEWS[soundId];
 
-      if (!Audio || typeof Audio.Sound?.createAsync !== 'function') {
-        console.log('[AdzanSoundPickerModal] Modul audio native expo-av belum terpasang.');
+      if (!source) {
+        console.log('Sound tidak ditemukan:', soundId);
         return;
       }
 
       const { sound } = await Audio.Sound.createAsync(
-        { uri: streamUrl },
-        { shouldPlay: true, volume: 0.8 }
-      ).catch((err) => {
-        console.log('[AdzanSoundPickerModal] Error membuat audio:', err?.message || err);
-        return { sound: null };
-      });
+        source,
+        {
+          shouldPlay: true,
+          volume: 0.8,
+        }
+      );
 
       if (!sound) {
         setPlayingId(null);
@@ -108,7 +115,7 @@ export const AdzanSoundPickerModal: React.FC<AdzanSoundPickerModalProps> = ({
 
   const handleSave = () => {
     if (soundObject) {
-      soundObject.stopAsync().catch(() => {});
+      soundObject.stopAsync().catch(() => { });
     }
     setPlayingId(null);
     if (prayerName) {
@@ -169,8 +176,8 @@ export const AdzanSoundPickerModal: React.FC<AdzanSoundPickerModalProps> = ({
                               ? 'rgba(34, 197, 94, 0.12)'
                               : '#F0FDF4'
                             : isDarkMode
-                            ? '#1E293B'
-                            : '#F8FAFC',
+                              ? '#1E293B'
+                              : '#F8FAFC',
                           borderColor: isSelected ? colors.primary : colors.border,
                         },
                       ]}
@@ -212,8 +219,8 @@ export const AdzanSoundPickerModal: React.FC<AdzanSoundPickerModalProps> = ({
                               backgroundColor: isPlayingThis
                                 ? '#EF4444'
                                 : isDarkMode
-                                ? 'rgba(34, 197, 94, 0.2)'
-                                : '#DCFCE7',
+                                  ? 'rgba(34, 197, 94, 0.2)'
+                                  : '#DCFCE7',
                             },
                           ]}
                           onPress={() => handlePlayPreview(opt.id)}

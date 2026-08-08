@@ -17,6 +17,31 @@ export class NativePrayerService {
     }
   }
 
+  static async scheduleAdzan(prayers: { name: string; time: string, sound: string }[]) {
+    if (Platform.OS !== 'android' || !PrayerForegroundNativeService) return;
+
+    try {
+      const prayersJson = JSON.stringify(prayers);
+
+      await PrayerForegroundNativeService.scheduleAdzan(prayersJson);
+    } catch (e) {
+      console.log('[NativePrayerService] Error scheduling adzan:', e);
+    }
+  }
+
+  /**
+   * Stop native Foreground Service
+   */
+  static stopPlayingAdzan() {
+    if (Platform.OS !== 'android' || !PrayerForegroundNativeService) return;
+
+    try {
+      PrayerForegroundNativeService.stopPlayingAdzan();
+    } catch (e) {
+      console.log('[NativePrayerService] Error stopping native service:', e);
+    }
+  }
+
   /**
    * Stop native Foreground Service
    */

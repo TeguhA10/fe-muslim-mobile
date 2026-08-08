@@ -66,7 +66,7 @@ export const RootNavigator: React.FC = () => {
             const cachedUser = JSON.parse(storedUserJson);
             await useAuthStore.getState().login(cachedUser, accessToken, refreshToken || null);
             hasCachedSession = true;
-          } catch (e) {}
+          } catch (e) { }
         }
 
         // 2. Try syncing fresh profile data from backend

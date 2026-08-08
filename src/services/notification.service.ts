@@ -160,7 +160,7 @@ export class NotificationService {
       this.pushToken = token;
 
       // Send push token to backend
-      await apiClient.post(ENDPOINTS.NOTIFICATIONS.PUSH_TOKEN, { token }).catch(() => {});
+      await apiClient.post(ENDPOINTS.NOTIFICATIONS.PUSH_TOKEN, { token }).catch(() => { });
       console.log('[NotificationService] Registered push token:', token);
       return token;
     } catch (e) {
@@ -180,7 +180,7 @@ export class NotificationService {
   ) {
     try {
       // Dismiss legacy duplicate Expo JS notification if present
-      await Notifications.dismissNotificationAsync(ONGOING_NOTIF_ID).catch(() => {});
+      await Notifications.dismissNotificationAsync(ONGOING_NOTIF_ID).catch(() => { });
     } catch (e) {
       console.log('[NotificationService] Error updating ongoing notification:', e);
     }
@@ -206,7 +206,7 @@ export class NotificationService {
       const scheduled = await Notifications.getAllScheduledNotificationsAsync();
       for (const notif of scheduled) {
         if (notif.content.data?.type === 'adzan_alarm' || notif.content.data?.type === 'pre_adzan_alarm') {
-          await Notifications.cancelScheduledNotificationAsync(notif.identifier).catch(() => {});
+          await Notifications.cancelScheduledNotificationAsync(notif.identifier).catch(() => { });
         }
       }
 
@@ -228,7 +228,7 @@ export class NotificationService {
             content: {
               title: `🕌 Waktu Sholat ${p.name} Telah Tiba!`,
               body: `Saatnya menunaikan ibadah sholat ${p.name} (${p.time}).`,
-              sound: isSilent ? undefined : 'default',
+              sound: isSilent ? undefined : soundChoice,
               priority: Notifications.AndroidNotificationPriority.MAX,
               data: { type: 'adzan_alarm', prayerName: p.name, soundChoice },
             },
@@ -236,7 +236,7 @@ export class NotificationService {
               type: Notifications.SchedulableTriggerInputTypes.DATE,
               date: adzanTime,
             },
-          }).catch(() => {});
+          }).catch(() => { });
         }
 
         // 2. Pre-Adzan Reminder Notification (e.g. 5, 10, 15 minutes before)
@@ -255,7 +255,7 @@ export class NotificationService {
                 type: Notifications.SchedulableTriggerInputTypes.DATE,
                 date: preAdzanTime,
               },
-            }).catch(() => {});
+            }).catch(() => { });
           }
         }
       }
@@ -269,8 +269,8 @@ export class NotificationService {
    */
   static async dismissOngoingNotification() {
     try {
-      await Notifications.dismissNotificationAsync(ONGOING_NOTIF_ID).catch(() => {});
-    } catch (e) {}
+      await Notifications.dismissNotificationAsync(ONGOING_NOTIF_ID).catch(() => { });
+    } catch (e) { }
   }
 }
 

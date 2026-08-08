@@ -12,6 +12,7 @@ import { NativePrayerService } from './nativePrayerService';
 export interface SimplePrayerTime {
   name: string;
   time: string;
+  sound: string;
 }
 
 const PRAYER_SCHEDULE_CACHE_KEY = 'prayer_bg_schedule_cache';
@@ -32,7 +33,7 @@ BackgroundFetch.registerTaskAsync(PRAYER_BG_TASK, {
   minimumInterval: 60 * 15, // 15 minutes
   stopOnTerminate: false, // Continue after app close!
   startOnBoot: true, // Start on phone reboot!
-}).catch(() => {});
+}).catch(() => { });
 
 export class PrayerBackgroundService {
   private static timerId: NodeJS.Timeout | null = null;
@@ -83,11 +84,11 @@ export class PrayerBackgroundService {
 
       if (!this.prayerTimes || this.prayerTimes.length === 0) {
         this.prayerTimes = [
-          { name: 'Subuh', time: '04:42' },
-          { name: 'Dzuhur', time: '12:02' },
-          { name: 'Ashar', time: '15:24' },
-          { name: 'Maghrib', time: '18:01' },
-          { name: 'Isya', time: '19:12' },
+          { name: 'Subuh', time: '04:42', sound: "adzan_makkah" },
+          { name: 'Dzuhur', time: '12:02', sound: "adzan_makkah" },
+          { name: 'Ashar', time: '15:24', sound: "adzan_makkah" },
+          { name: 'Maghrib', time: '18:01', sound: "adzan_makkah" },
+          { name: 'Isya', time: '19:12', sound: "adzan_makkah" },
         ];
       }
 
@@ -112,11 +113,11 @@ export class PrayerBackgroundService {
         PRAYER_SCHEDULE_CACHE_KEY,
         JSON.stringify({ prayers, city, timestamp: Date.now() })
       );
-    } catch (e) {}
+    } catch (e) { }
 
     const { reminderOffsetMinutes, notifAdzanEnabled, stickyNotifEnabled } = useSettingsStore.getState();
 
-    // Schedule exact adzan & pre-adzan offset alarm notifications
+    NativePrayerService.scheduleAdzan(prayers);
     NotificationService.scheduleAdzanReminders(prayers, reminderOffsetMinutes, notifAdzanEnabled);
 
     if (stickyNotifEnabled) {
@@ -143,7 +144,7 @@ export class PrayerBackgroundService {
           this.currentCity = parsed.city || 'Jakarta';
         }
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   /**
@@ -184,11 +185,11 @@ export class PrayerBackgroundService {
 
     if (!this.prayerTimes || this.prayerTimes.length === 0) {
       this.prayerTimes = [
-        { name: 'Subuh', time: '04:42' },
-        { name: 'Dzuhur', time: '12:02' },
-        { name: 'Ashar', time: '15:24' },
-        { name: 'Maghrib', time: '18:01' },
-        { name: 'Isya', time: '19:12' },
+        { name: 'Subuh', time: '04:42', sound: "adzan_makkah" },
+        { name: 'Dzuhur', time: '12:02', sound: "adzan_makkah" },
+        { name: 'Ashar', time: '15:24', sound: "adzan_makkah" },
+        { name: 'Maghrib', time: '18:01', sound: "adzan_makkah" },
+        { name: 'Isya', time: '19:12', sound: "adzan_makkah" },
       ];
     }
 
@@ -261,9 +262,9 @@ export class PrayerBackgroundService {
                 widgetHeight: widgetInfo?.height || 180,
               } as any);
             },
-            widgetNotFound: () => {},
-          }).catch(() => {});
-        }).catch(() => {});
+            widgetNotFound: () => { },
+          }).catch(() => { });
+        }).catch(() => { });
       }
     }
   }
